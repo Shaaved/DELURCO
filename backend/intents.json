@@ -1,0 +1,55 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "Hi",
+        "Hello",
+        "Good morning",
+        "Is anyone there?",
+        "Ram Ram"
+      ],
+      "responses": [
+        "Jai Hind! Welcome to DELURC. How can I help you today?",
+        "Hello! Welcome to DELURC. What groceries would you like to order today?"
+      ]
+    },
+    {
+      "tag": "order_item",
+      "patterns": [
+        "I want to buy",
+        "Add to my cart",
+        "Get me some",
+        "I need",
+        "Put this in my order"
+      ],
+      "responses": [
+        "Adding that to your cart now."
+      ]
+    },
+    {
+      "tag": "check_quota",
+      "patterns": [
+        "What is my remaining quota?",
+        "How much limit do I have left?",
+        "Check my smart card balance",
+        "Grocery limit"
+      ],
+      "responses": [
+        "Let me check your remaining CSD quota."
+      ]
+    },
+    {
+      "tag": "checkout",
+      "patterns": [
+        "I am done",
+        "Place my order",
+        "Checkout now",
+        "Send my groceries"
+      ],
+      "responses": [
+        "Processing your order now. Please wait."
+      ]
+    }
+  ]
+}
