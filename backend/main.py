@@ -222,8 +222,6 @@ def update_order_status(
     delivery_db.commit()
     
     return {"message": f"Order #{order_id} status updated to {status_req.status}"}
-import re # Add this import at the top of main.py if it isn't there already!
-
 @app.post("/chat")
 def chat_with_bot(request: ChatRequest, delivery_db: Session = Depends(get_delivery_db)):
     """Processes natural language input, extracts entities, and returns an AI response."""
@@ -303,7 +301,7 @@ def get_active_deliveries(delivery_db: Session = Depends(get_delivery_db)):
     """Fetches all orders currently out for delivery."""
     # Note: Adjust the status string based on what you used in your order creation logic!
     # Common statuses: "PENDING", "PROCESSING", "OUT FOR DELIVERY"
-    deliveries = delivery_db.query(Order).filter(Order.status == "OUT FOR DELIVERY").all()
+    deliveries = delivery_db.query(Order).filter(Order.status == "out_for_delivery").all()
     
     # Format the data for the mobile frontend
     result = []
