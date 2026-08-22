@@ -4,6 +4,7 @@ let currentSmartCardId = "";
 // NEW: Variables to track the cart
 let cart = [];
 let cartTotal = 0;
+let activeCart = []; // NEW: This will hold the items added via AI chat
 
 async function login() {
     const cardId = document.getElementById("smart-card-input").value;
@@ -192,9 +193,6 @@ async function placeOrder() {
     }
     
 }
-// --- CART MEMORY ---
-let activeCart = [];
-let cartTotal = 0;
 
 // --- CHAT LOGIC ---
 async function sendChatMessage() {
@@ -253,4 +251,50 @@ function addToCart(itemName, price, qty) {
     // 3. Add the item to the sidebar list
     const cartList = document.getElementById("cart-list");
     cartList.innerHTML += `<li style="padding: 5px 0; border-bottom: 1px solid var(--border-color);">${qty}x ${itemName} <span style="float: right;">₹${itemTotal.toFixed(2)}</span></li>`;
+}
+// --- CHECKOUT LOGIC ---
+async function processCheckout() {
+    const smartCardId = document.getElementById("smart-card-input").value.trim();
+
+    // 1. Validation checks
+    if (!smartCardId) {
+        alert("Authentication Error: Please login with your Smart Card first.");
+        return;
+    }
+    if (activeCart.length === 0) {
+        alert("Cart is empty. Ask the AI to add items first.");
+        return;
+    }
+
+    try {
+        // 2. Send the transaction to the backend
+        const response = await fetch(`${API_BASE_URL}/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                smart_card_id: smartCardId,
+                total_amount: cartTotal,
+                items: activeCart
+            })
+        });
+
+        const data = await response.json();
+
+        // 3. Handle Success vs Insufficient Funds
+        if (response.ok) {
+            alert(`Order Dispatched! Remaining balance: ₹${data.new_balance.toFixed(2)}`);
+            
+            // Clear the cart and update UI
+            activeCart = [];
+            cartTotal = 0;
+            document.getElementById("cart-total").innerText = "0.00";
+            document.getElementById("cart-list").innerHTML = "";
+            document.getElementById("grocery-quota").innerText = data.new_balance.toFixed(2);
+        } else {
+            alert(`Transaction Failed: ${data.detail}`);
+        }
+    } catch (error) {
+        console.error("Checkout Error:", error);
+        alert("Network error during checkout.");
+    }
 }

@@ -303,17 +303,26 @@ def get_active_deliveries(delivery_db: Session = Depends(get_delivery_db)):
     """Fetches all orders currently out for delivery."""
     # Note: Adjust the status string based on what you used in your order creation logic!
     # Common statuses: "PENDING", "PROCESSING", "OUT FOR DELIVERY"
-    deliveries = delivery_db.query(Order).filter(Order.status == "OUT FOR DELIVERY").all()
-    
+    # .ilike() ignores case, so it will catch "PENDING", "pending", or "Pending"
+    deliveries = delivery_db.query(Order).filter(Order.status.ilike("pending")).all()
     # Format the data for the mobile frontend
     result = []
     for order in deliveries:
+        # Fetch the real grocery items linked to this specific order ID
+        items_in_db = delivery_db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        
+        # Format them exactly how your frontend expects: "2x Maggi Noodles (₹24.0)"
+        formatted_items = [
+            f"{item.quantity}x {item.item_name} (₹{item.price * item.quantity})" 
+            for item in items_in_db
+        ]
+
         result.append({
             "order_id": order.id,
-            "smart_card": f"Beneficiary ID: {order.user_id}", # <-- Matched to your exact database column
+            "smart_card": f"Beneficiary ID: {order.user_id}",
             "total_amount": order.total_amount,
             "status": order.status,
-            "items": [] # <-- Hardcoded to an empty list to prevent the items_json crash
+            "items": formatted_items # <-- Replaced the hardcoded [] with the real data!
         })
     return result
 
@@ -329,3 +338,62 @@ def complete_delivery(order_id: int, delivery_db: Session = Depends(get_delivery
     delivery_db.commit()
     
     return {"message": f"Order {order_id} successfully marked as DELIVERED."}
+class CartItem(BaseModel):
+    name: str
+    price: float
+    quantity: int
+
+class CheckoutRequest(BaseModel):
+    smart_card_id: str
+    total_amount: float
+    items: List[CartItem]
+
+# --- ENDPOINT: Process the transaction ---
+from fastapi import HTTPException, Depends
+
+@app.post("/checkout")
+def process_checkout(
+    request: CheckoutRequest, 
+    mock_db: Session = Depends(get_mock_db),          # Needed for the financial balance
+    delivery_db: Session = Depends(get_delivery_db)   # Needed for the rider's order
+):
+    # 1. Find the User in your app database
+    app_user = delivery_db.query(User).filter(User.smart_card_id == request.smart_card_id).first()
+    if not app_user:
+        raise HTTPException(status_code=404, detail="User not registered on app.")
+
+    # 2. Find their actual financial record in the CSD database
+    csd_record = mock_db.query(MockCSDRecord).filter(MockCSDRecord.smart_card_id == request.smart_card_id).first()
+    if not csd_record:
+        raise HTTPException(status_code=404, detail="Smart Card not found in CSD database.")
+
+    # 3. Check for Insufficient Funds
+    if csd_record.monthly_grocery_limit < request.total_amount:
+        raise HTTPException(status_code=400, detail="Insufficient CSD Quota for this transaction.")
+
+    # 4. Deduct the Money!
+    csd_record.monthly_grocery_limit -= request.total_amount
+    mock_db.commit()
+# 5. Create the Order for the Rider
+    new_order = Order(
+        user_id=app_user.id,
+        total_amount=request.total_amount,
+        status="PENDING"  # <-- CHANGED TO ALL CAPS!
+    )
+    delivery_db.add(new_order)
+    delivery_db.commit()
+    delivery_db.refresh(new_order) # <-- NEW: This grabs the ID of the newly created order!
+
+    # 6. Loop through the cart and save each item to the OrderItem table
+    for cart_item in request.items:
+        db_item = OrderItem(
+            order_id=new_order.id,
+            item_name=cart_item.name,    # NOTE: Ensure 'item_name', 'quantity', and 'price' match your OrderItem columns!
+            quantity=cart_item.quantity,
+            price=cart_item.price
+        )
+        delivery_db.add(db_item)
+    
+    delivery_db.commit()
+
+    return {"status": "success", "new_balance": csd_record.monthly_grocery_limit}
