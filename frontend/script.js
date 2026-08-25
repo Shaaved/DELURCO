@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://delurc.onrender.com";
+const API_BASE_URL = "https://delurco.onrender.com";
 let currentSmartCardId = "";
 
 // --- UNIFIED CART STATE ---
