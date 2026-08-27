@@ -1,72 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DELURC Home Delivery Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Link to external CSS file -->
+    <title>DELURC | Canteen Access</title>
     <link rel="stylesheet" href="style.css">
 </head>
+<body class="login-body">
+    
+    <div class="login-container">
+        <!-- Logo or App Name -->
+        <div class="login-header">
+            <h2>LOGIN</h2>
+            <p>Enter your Smart Card ID to continue</p>
+        </div>
 
-<body>
-    <div class="app-container">
-
-        <!-- LEFT SIDEBAR -->
-        <aside class="sidebar">
-            <h3 class="sidebar-title">👤 Beneficiary Portal</h3>
-
-            <button class="theme-toggle-btn" onclick="toggleTheme()">
-                🌓 Toggle Dark Mode
-            </button>
-
-            <div class="login-section">
-                <input type="text" id="smart-card-input" placeholder="Enter ID (e.g. CSD-1001)">
-                <button onclick="verifyQuota()" class="login-btn">LOGIN</button>
-            </div>
-
-            <div class="quota-card">
-                <strong>Balance:</strong> ₹<span id="grocery-quota">0.00</span>
-            </div>
-
-            <div class="cart-section">
-                <h4 style="margin-bottom: 10px;">🛒 Active Cart</h4>
-                <ul id="cart-list"
-                    style="list-style: none; padding: 0; margin: 0; font-size: 14px; color: var(--text-muted);">
-                    <!-- Cart items will populate here -->
-                </ul>
-                <div style="margin-top: 10px; font-weight: 600;">
-                    Total: ₹<span id="cart-total">0.00</span>
-                </div>
-                <button onclick="processCheckout()" style="width: 100%; margin-top: 15px; background-color: #3b82f6;">
-                    💳 SECURE CHECKOUT
-                </button>
-            </div>
-        </aside>
-
-        <!-- RIGHT MAIN: AI Chat Interface -->
-        <main class="chat-area">
-
-            <div class="chat-header">
-                <h3 style="margin: 0;">🤖 DELURC AI Assistant</h3>
-            </div>
-
-            <div id="chat-box" class="chat-box">
-                <div class="ai-msg">
-                    <strong>DELURC:</strong> Jai Hind! I am your automated canteen assistant. How can I help you today?
-                </div>
-            </div>
-
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Type your message here..." style="flex: 1;">
-                <button onclick="sendChatMessage()">SEND</button>
-            </div>
-
-        </main>
+        <!-- Authentication Form -->
+        <div class="login-form">
+            <input type="text" id="userIdInput" placeholder="e.g. CSD-1001" autocomplete="off">
+            <button id="loginBtn" onclick="verifyLogin()">SECURE LOGIN</button>
+            <p id="loginError" class="error-text" style="display: none;">Invalid ID. Please try again.</p>
+        </div>
     </div>
 
     <script src="script.js"></script>
 </body>
-
 </html>

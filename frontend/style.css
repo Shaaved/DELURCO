@@ -172,3 +172,56 @@ input[type="text"]:focus {
         padding: 10px;
     }
 }
+/* --- LOGIN PAGE STYLES --- */
+.login-body {
+    margin: 0;
+    padding: 0;
+    height: 100vh; /* Takes up the full height of the screen */
+    display: flex;
+    justify-content: center; /* Centers horizontally */
+    align-items: center;     /* Centers vertically */
+    background-color: #0f172a; /* Dark sleek background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-container {
+    background-color: #1e293b;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 350px; /* Prevents it from getting too wide on desktop */
+    text-align: center;
+    color: white;
+}
+
+.login-container h2 {
+    margin-top: 0;
+    color: #10b981; /* Emerald green accent */
+}
+
+.login-form input {
+    width: 90%;
+    padding: 12px;
+    margin: 20px 0;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background-color: #0f172a;
+    color: white;
+}
+
+.login-form button {
+    width: 100%;
+    padding: 12px;
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.login-form button:hover {
+    background-color: #059669;
+}
