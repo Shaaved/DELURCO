@@ -166,3 +166,9 @@ input[type="text"]:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
+@media (max-width: 768px) {
+    .chat-container {
+        width: 100%;
+        padding: 10px;
+    }
+}
