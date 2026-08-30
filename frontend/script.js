@@ -19,13 +19,17 @@ async function verifyQuota() {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/${smartCardId}`);
         
-        if (response.ok) {
-            const data = await response.json();
-            currentSmartCardId = data.smart_card_id;
-            const groceryQuota = data.quotas.grocery_limit_inr;
-            document.getElementById("grocery-quota").innerText = groceryQuota.toFixed(2);
-            inputField.style.borderColor = "var(--accent-color)";
-        } else {
+       if (response.ok) {
+    const data = await response.json();
+    
+    // 1. Save the ID to the browser's memory so home.html can read it
+    localStorage.setItem("loggedInCard", data.smart_card_id);
+    
+    // 2. Teleport the user to the main dashboard
+    window.location.href = "home.html";
+    
+} else {
+    // ... keep your existing else block exactly the same ...
             alert("Smart Card not found in CSD database. Please check the ID and try again.");
             inputField.style.borderColor = "red";
         }

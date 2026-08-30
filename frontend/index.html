@@ -4,25 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DELURC | Canteen Access</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="login-body">
     
-    <div class="login-container">
-        <!-- Logo or App Name -->
-        <div class="login-header">
-            <h2>LOGIN</h2>
-            <p>Enter your Smart Card ID to continue</p>
+    <!-- 1. The Tailwind Compiler -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+</head>
+<!-- 2. Body Styling: Dark background, centered content, full height -->
+<body class="min-h-screen flex items-center justify-center bg-slate-900 font-sans m-0">
+
+    <!-- 3. The Pinned Navbar -->
+    <nav class="absolute top-0 left-0 w-full px-10 py-5 flex justify-between items-center bg-slate-800 shadow-lg box-border">
+        <h2 class="text-white text-2xl tracking-wide font-bold m-0">DELURC</h2>
+        
+        <div class="flex gap-8">
+            <a href="#" class="text-slate-300 hover:text-emerald-500 font-medium no-underline transition-colors duration-300">Home</a>
+            <a href="#" class="text-slate-300 hover:text-emerald-500 font-medium no-underline transition-colors duration-300">About</a>
+            <a href="#" class="text-slate-300 hover:text-emerald-500 font-medium no-underline transition-colors duration-300">Contact</a>
+        </div>
+    </nav>
+
+    <!-- 4. The Centered Login Card -->
+    <div class="bg-slate-800 p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
+        
+        <div class="mb-6">
+            <h2 class="mt-0 mb-2 text-emerald-500 text-2xl font-bold tracking-wide">LOGIN</h2>
+            <p class="text-slate-300 text-sm">Enter your Smart Card ID to continue</p>
         </div>
 
-        <!-- Authentication Form -->
-        <div class="login-form">
-            <input type="text" id="userIdInput" placeholder="e.g. CSD-1001" autocomplete="off">
-            <button id="loginBtn" onclick="verifyLogin()">SECURE LOGIN</button>
-            <p id="loginError" class="error-text" style="display: none;">Invalid ID. Please try again.</p>
+        <div>
+            <!-- Input Field -->
+            <input type="text" id="smart-card-input" placeholder="e.g. CSD-1001" autocomplete="off"
+                class="w-full p-3 my-5 rounded-md border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            
+            <!-- Login Button -->
+            <button id="loginBtn" onclick="verifyQuota()" 
+                class="w-full p-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-md cursor-pointer transition-colors duration-200">
+                SECURE LOGIN
+            </button>
+            
+            <p id="loginError" class="text-red-500 text-sm mt-4 hidden">Invalid ID. Please try again.</p>
         </div>
     </div>
 
+    <!-- Link your JS -->
     <script src="script.js"></script>
 </body>
 </html>
