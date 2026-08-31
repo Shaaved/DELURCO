@@ -4,11 +4,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
 from datetime import timedelta
-import torch
-import json
-import random
-from chat_model import NeuralNet, bag_of_words, tokenize
-import re
+from google import genai
+
+
 # (Keep all your existing FastAPI, SQLAlchemy, and Pydantic imports)
 
 # Import Delivery App DB components
@@ -85,28 +83,6 @@ def get_available_inventory(delivery_db: Session = Depends(get_delivery_db)):
     """Returns all items currently in stock at the local URC."""
     items = delivery_db.query(Inventory).filter(Inventory.stock_quantity > 0).all()
     return {"available_items": items}
-# --- INITIALIZE DELURC AI CHATBOT ---
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# Load the conversational intents
-with open('intents.json', 'r') as json_data:
-    intents = json.load(json_data)
-
-# Load the trained neural network weights
-FILE = "data.pth"
-data = torch.load(FILE)
-
-input_size = data["input_size"]
-hidden_size = data["hidden_size"]
-output_size = data["output_size"]
-all_words = data['all_words']
-tags = data['tags']
-model_state = data["model_state"]
-
-# Rebuild the model architecture and apply the trained weights
-ai_model = NeuralNet(input_size, hidden_size, output_size).to(device)
-ai_model.load_state_dict(model_state)
-ai_model.eval() # Set to evaluation mode
 
 # --- NEW CHAT SCHEMA ---
 class ChatRequest(BaseModel):
@@ -222,80 +198,35 @@ def update_order_status(
     delivery_db.commit()
     
     return {"message": f"Order #{order_id} status updated to {status_req.status}"}
+client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3PefX3A")
+
+# 1. Update the Persona to stop the repetitive greetings
+sys_prompt = """
+You are the DELURC Canteen AI Assistant. You help users order groceries. 
+IMPORTANT RULES: 
+- Do not say 'Hello' or greet the user on every message.
+- Remember the items the user adds to their cart.
+- Be concise and conversational.
+"""
+
+# 2. Start a continuous Chat Session (Memory Enabled!)
+chat_session = client.chats.create(
+    model='gemini-3.6-flash',
+    config=genai.types.GenerateContentConfig(
+        system_instruction=sys_prompt,
+    )
+)
+
 @app.post("/chat")
-def chat_with_bot(request: ChatRequest, delivery_db: Session = Depends(get_delivery_db)):
-    """Processes natural language input, extracts entities, and returns an AI response."""
-    sentence = tokenize(request.message)
-    X = bag_of_words(sentence, all_words)
-    X = X.reshape(1, X.shape[0])
-    X = torch.from_numpy(X).to(device)
-
-    # Push the data through the neural network
-    output = ai_model(X)
-    _, predicted = torch.max(output, dim=1)
-    
-    tag = tags[predicted.item()]
-    probs = torch.softmax(output, dim=1)
-    prob = probs[0][predicted.item()]
-    
-    if prob.item() > 0.75:
-        for intent in intents['intents']:
-            if tag == intent["tag"]:
-                
-                # Base AI response payload
-                response_data = {
-                    "response": random.choice(intent['responses']), 
-                    "intent": tag,
-                    "confidence": prob.item()
-                }
-
-                # --- NEW: ENTITY EXTRACTION LOGIC ---
-                if tag == "order_item":
-                    user_text = request.message.lower()
-                    
-                    # 1. Extract Quantity (look for digits, default to 1)
-                    quantities = [int(s) for s in re.findall(r'\b\d+\b', user_text)]
-                    qty = quantities[0] if quantities else 1
-                    
-                   # 2. Extract Item by scanning the active database
-                    inventory = delivery_db.query(Inventory).filter(Inventory.stock_quantity > 0).all()
-                    extracted_item = None
-                    extracted_price = 0
-                    for item in inventory:
-                        db_name = item.item_name.lower()
-                        # 1. Try an exact match first
-                        if db_name in user_text:
-                            extracted_item = item.item_name
-                            extracted_price = item.price
-                            break
-                        
-                        # 2. Try a partial match (e.g. matching "maggi" to "Maggi Noodles")
-                        db_words = [w for w in db_name.split() if len(w) > 3] # Ignore small words
-                        user_words = user_text.split()
-                        
-                        if any(word in user_words for word in db_words):
-                            extracted_item = item.item_name
-                            extracted_price = item.price
-                            break
-                    
-                    # 3. Append extracted data for the frontend cart
-                    if extracted_item:
-                        response_data["extracted_item"] = extracted_item
-                        response_data["extracted_price"] = extracted_price
-                        response_data["extracted_qty"] = qty
-                        response_data["response"] += f" I am adding {qty}x {extracted_item} to your cart."
-                    else:
-                        response_data["response"] = "I understand you want to order, but I couldn't find that exact item in our current stock. Please check the inventory list."
-                
-                return response_data
-    
-    return {
-        "response": "I am sorry, I didn't quite catch that. Could you rephrase your request?", 
-        "intent": "unknown",
-        "confidence": prob.item()
-    }
-# --- DELIVERY AGENT PORTAL ENDPOINTS ---
-
+async def chat_endpoint(req: ChatRequest):
+    try:
+        # 3. Use send_message() on the session instead of generate_content
+        response = chat_session.send_message(req.message)
+        return {"response": response.text}
+        
+    except Exception as e:
+        print(f"🚨 GEMINI ERROR: {str(e)}") 
+        raise HTTPException(status_code=500, detail=str(e))
 @app.get("/agent/deliveries")
 def get_active_deliveries(delivery_db: Session = Depends(get_delivery_db)):
     """Fetches all orders currently out for delivery."""

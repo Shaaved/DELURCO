@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://delurco.onrender.com";
+const API_BASE_URL = "http://127.0.0.1:8000";;
 let currentSmartCardId = "";
 
 // --- UNIFIED CART STATE ---
@@ -160,49 +160,76 @@ async function placeOrder() {
 }
 
 // --- CHAT LOGIC ---
+// Function to handle sending the chat message
 async function sendChatMessage() {
     const inputField = document.getElementById("chat-input");
     const message = inputField.value.trim();
-    if (!message) return;
+    const chatHistory = document.getElementById("chat-history");
 
-    const chatBox = document.getElementById("chat-box");
+    if (!message) return; // Don't send empty messages
 
-    // Display user message
-    chatBox.innerHTML += `
-        <div style="background: var(--chat-user-bg); color: var(--text-main); padding: 10px 15px;
-                    border-radius: 12px; align-self: flex-end; max-width: 80%; margin-left: auto;">
-            <strong>You:</strong> ${message}
-        </div>`;
+    // 1. Display the User's message in the UI
+    chatHistory.innerHTML += `
+        <div class="mb-4 text-right">
+            <span class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg max-w-[80%] text-sm">
+                ${message}
+            </span>
+        </div>
+    `;
+    
+    // Clear the input field and scroll to bottom
     inputField.value = "";
+    chatHistory.scrollTop = chatHistory.scrollHeight;
 
     try {
+        // 2. Send the message to your FastAPI backend
         const response = await fetch(`${API_BASE_URL}/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ message: message })
         });
 
-        if (!response.ok) throw new Error("Backend connection failed.");
-        const data = await response.json();
-
-        // Display AI response
-        chatBox.innerHTML += `
-            <div class="ai-msg">
-                <strong>DELURC:</strong> ${data.response}
-            </div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // If the AI identified an item, add it to the shared cart
-        if (data.extracted_item) {
-            addToCart(data.extracted_item, data.extracted_price, data.extracted_qty || 1);
+        if (response.ok) {
+            const data = await response.json();
+            
+            // 3. Display Gemini's response in the UI
+            chatHistory.innerHTML += `
+                <div class="mb-4 text-left">
+                    <span class="inline-block bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg max-w-[80%] text-sm">
+                        🤖 ${data.response}
+                    </span>
+                </div>
+            `;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        } else {
+            throw new Error("Server rejected the chat request.");
         }
-
     } catch (error) {
-        console.error("Chat error:", error);
-        alert("Connection error. Check your console!");
+        console.error("Chat Error:", error);
+        chatHistory.innerHTML += `
+            <div class="mb-4 text-left">
+                <span class="inline-block bg-red-900/50 text-red-200 border border-red-700 px-4 py-2 rounded-lg text-sm">
+                    ⚠️ Connection error. Make sure the backend is running.
+                </span>
+            </div>
+        `;
     }
 }
 
+// Allow pressing "Enter" to send the message
+document.addEventListener("DOMContentLoaded", () => {
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+        chatInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
+});
 // --- CART UI LOGIC ---
 function addToCart(itemName, price, qty) {
     // 1. Save to memory
