@@ -3,9 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>DELURC | Dashboard</title>
+    <!-- Tailwind Compiler -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    
+<body class="bg-slate-900 text-white font-sans h-screen flex flex-col">
+
+    <!-- Navbar (Pinned to top) -->
+    <nav class="w-full px-10 py-4 flex justify-between items-center bg-slate-800 shadow-lg shrink-0">
+        <h2 class="text-2xl tracking-wide font-bold m-0 text-white">DELURC</h2>
+        <div class="flex gap-8">
+            <a href="index.html" class="text-slate-300 hover:text-emerald-500 font-medium transition-colors">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard Grid -->
+    <!-- flex-col on mobile, md:flex-row on desktop. gap-6 adds spacing! -->
+    <main class="flex-1 overflow-hidden p-4 md:p-8 flex flex-col md:flex-row gap-6 max-w-7xl mx-auto w-full">
+        
+        <!-- LEFT COLUMN: Beneficiary Info & Cart -->
+        <div class="w-full md:w-1/3 bg-slate-800 rounded-xl p-6 shadow-xl flex flex-col gap-6 overflow-y-auto">
+            
+            <!-- ID Card -->
+            <div class="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+                <h3 class="text-emerald-400 font-bold mb-2">👤 Beneficiary Profile</h3>
+                <p class="text-sm text-slate-300">Smart Card: <span id="display-card-id" class="text-white font-mono font-bold">Loading...</span></p>
+                <p class="text-sm text-slate-300 mt-1">Balance: ₹<span id="grocery-quota" class="text-white font-bold">0.00</span></p>
+            </div>
+
+            <!-- Active Cart -->
+            <div class="flex-1">
+                <h3 class="text-emerald-400 font-bold mb-4">🛒 Active Cart</h3>
+                <div id="cart-items" class="text-sm text-slate-400">
+                    Your cart is currently empty.
+                </div>
+            </div>
+
+            <button class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md transition-colors mt-auto shadow-lg">
+                SECURE CHECKOUT
+            </button>
+        </div>
+
+        <!-- RIGHT COLUMN: AI Assistant -->
+        <div class="w-full md:w-2/3 bg-slate-800 rounded-xl p-6 shadow-xl flex flex-col h-[500px] md:h-auto">
+            <h3 class="text-emerald-400 font-bold mb-4 flex items-center gap-2">
+                🤖 DELURC AI Assistant
+            </h3>
+            
+            <!-- Chat History Area -->
+            <div id="chat-history" class="flex-1 bg-slate-900 rounded-lg p-4 overflow-y-auto mb-4 border border-slate-700">
+                <p class="text-slate-400 text-sm italic">System: Secure connection to PyTorch Neural Net established.</p>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Ask for groceries..." 
+                    class="flex-1 p-3 rounded-md border border-slate-600 bg-slate-700 text-white focus:outline-none focus:border-emerald-500">
+                <button onclick="sendChatMessage()" 
+                    class="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-md transition-colors">
+                    SEND
+                </button>
+            </div>
+        </div>
+        
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Quick script to pull the ID from localStorage and display it
+        const loggedInCard = localStorage.getItem("loggedInCard");
+        if (loggedInCard) {
+            document.getElementById("display-card-id").innerText = loggedInCard;
+        } else {
+            // Kick them back to login if they bypassed it
+            window.location.href = "index.html";
+        }
+    </script>
 </body>
 </html>
