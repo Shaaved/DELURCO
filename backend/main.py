@@ -1,3 +1,4 @@
+from fastapi.responses import StreamingResponse
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -204,13 +205,14 @@ client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3Pe
 sys_prompt = """
 You are the DELURC Canteen AI Assistant. You help users order groceries. 
 IMPORTANT RULES: 
+- Say hello in reply to the first message only.
 - Do not say 'Hello' or greet the user on every message.
 - Remember the items the user adds to their cart.
 - Be concise and conversational.
 """
 
-# 2. Start a continuous Chat Session (Memory Enabled!)
-chat_session = client.chats.create(
+# 1. Start the session using the ASYNC client (client.aio)
+chat_session = client.aio.chats.create(
     model='gemini-3.6-flash',
     config=genai.types.GenerateContentConfig(
         system_instruction=sys_prompt,
@@ -219,14 +221,27 @@ chat_session = client.chats.create(
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
-    try:
-        # 3. Use send_message() on the session instead of generate_content
-        response = chat_session.send_message(req.message)
-        return {"response": response.text}
-        
-    except Exception as e:
-        print(f"🚨 GEMINI ERROR: {str(e)}") 
-        raise HTTPException(status_code=500, detail=str(e))
+    # 2. Make the generator async so it doesn't block the server
+    async def stream_generator():
+        try:
+            # Notice the 'await' and 'async for' here!
+            response_stream = await chat_session.send_message_stream(req.message)
+            async for chunk in response_stream:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            print(f"🚨 STREAM ERROR: {str(e)}")
+            yield "⚠️ Connection lost."
+
+    # 3. Add strict headers to force the data through the buffer
+    return StreamingResponse(
+        stream_generator(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
 @app.get("/agent/deliveries")
 def get_active_deliveries(delivery_db: Session = Depends(get_delivery_db)):
     """Fetches all orders currently out for delivery."""

@@ -10,7 +10,7 @@ let activeCart = []; // NEW: This will hold the items added via AI chat
 async function verifyQuota() {
     const inputField = document.getElementById("smart-card-input");
     const smartCardId = inputField.value.trim();
-    
+
     if (!smartCardId) {
         alert("Please enter a valid Smart Card ID (e.g., CSD-1001).");
         return;
@@ -18,18 +18,18 @@ async function verifyQuota() {
 
     try {
         const response = await fetch(`${API_BASE_URL}/auth/${smartCardId}`);
-        
-       if (response.ok) {
-    const data = await response.json();
-    
-    // 1. Save the ID to the browser's memory so home.html can read it
-    localStorage.setItem("loggedInCard", data.smart_card_id);
-    
-    // 2. Teleport the user to the main dashboard
-    window.location.href = "home.html";
-    
-} else {
-    // ... keep your existing else block exactly the same ...
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // 1. Save the ID to the browser's memory so home.html can read it
+            localStorage.setItem("loggedInCard", data.smart_card_id);
+
+            // 2. Teleport the user to the main dashboard
+            window.location.href = "home.html";
+
+        } else {
+            // ... keep your existing else block exactly the same ...
             alert("Smart Card not found in CSD database. Please check the ID and try again.");
             inputField.style.borderColor = "red";
         }
@@ -66,7 +66,7 @@ async function loadInventory() {
     try {
         const response = await fetch(`${API_BASE_URL}/inventory`);
         const data = await response.json();
-        
+
         inventoryList.innerHTML = "";
         data.available_items.forEach(item => {
             const itemCard = document.createElement("div");
@@ -166,9 +166,9 @@ async function sendChatMessage() {
     const message = inputField.value.trim();
     const chatHistory = document.getElementById("chat-history");
 
-    if (!message) return; // Don't send empty messages
+    if (!message) return;
 
-    // 1. Display the User's message in the UI
+    // 1. Display User Message
     chatHistory.innerHTML += `
         <div class="mb-4 text-right">
             <span class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg max-w-[80%] text-sm">
@@ -176,45 +176,68 @@ async function sendChatMessage() {
             </span>
         </div>
     `;
-    
-    // Clear the input field and scroll to bottom
+
     inputField.value = "";
     chatHistory.scrollTop = chatHistory.scrollHeight;
 
+    // 2. Create an empty bubble for the AI that we will fill up word-by-word
+    const botMessageId = "bot-" + Date.now(); // Create a unique ID
+    chatHistory.innerHTML += `
+        <div class="mb-4 text-left">
+            <span id="${botMessageId}" class="inline-block bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg max-w-[80%] text-sm">
+                🤖 <span class="animate-pulse text-emerald-500">...</span>
+            </span>
+        </div>
+    `;
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
     try {
-        // 2. Send the message to your FastAPI backend
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: message })
         });
 
-        if (response.ok) {
-            const data = await response.json();
+        if (!response.ok) throw new Error("Server rejected the chat request.");
+
+        // 3. Catch the stream and type it out in real-time
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        const botBubble = document.getElementById(botMessageId);
+
+        botBubble.innerHTML = "🤖 "; // Clear the loading dots
+
+      while (true) {
+            const { done, value } = await reader.read();
+            if (done) break; 
             
-            // 3. Display Gemini's response in the UI
-            chatHistory.innerHTML += `
-                <div class="mb-4 text-left">
-                    <span class="inline-block bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg max-w-[80%] text-sm">
-                        🤖 ${data.response}
-                    </span>
-                </div>
-            `;
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        } else {
-            throw new Error("Server rejected the chat request.");
+            const textChunk = decoder.decode(value, { stream: true });
+            
+            // 1. Safely escape characters (but don't replace newlines just yet!)
+            const safeText = textChunk
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+                
+            // 2. THE TYPING MAGIC: Loop through the chunk one character at a time
+            for (let i = 0; i < safeText.length; i++) {
+                
+                // Handle line breaks correctly
+                if (safeText[i] === '\n') {
+                    botBubble.innerHTML += '<br>';
+                } else {
+                    botBubble.innerHTML += safeText[i];
+                }
+                
+                // Auto-scroll as it types
+                chatHistory.scrollTop = chatHistory.scrollHeight; 
+                
+                // 3. The Throttle: Wait 15 milliseconds before typing the next letter
+                await new Promise(resolve => setTimeout(resolve, 15)); 
+            }
         }
     } catch (error) {
         console.error("Chat Error:", error);
-        chatHistory.innerHTML += `
-            <div class="mb-4 text-left">
-                <span class="inline-block bg-red-900/50 text-red-200 border border-red-700 px-4 py-2 rounded-lg text-sm">
-                    ⚠️ Connection error. Make sure the backend is running.
-                </span>
-            </div>
-        `;
+        document.getElementById(botMessageId).innerHTML = "⚠️ Connection error.";
     }
 }
 
@@ -222,7 +245,7 @@ async function sendChatMessage() {
 document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {
-        chatInput.addEventListener("keypress", function(event) {
+        chatInput.addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
                 event.preventDefault();
                 sendChatMessage();
@@ -234,12 +257,12 @@ document.addEventListener("DOMContentLoaded", () => {
 function addToCart(itemName, price, qty) {
     // 1. Save to memory
     activeCart.push({ name: itemName, price: price, quantity: qty });
-    
+
     // 2. Calculate and update the new total
     const itemTotal = price * qty;
     cartTotal += itemTotal;
     document.getElementById("cart-total").innerText = cartTotal.toFixed(2);
-    
+
     // 3. Add the item to the sidebar list
     const cartList = document.getElementById("cart-list");
     cartList.innerHTML += `<li style="padding: 5px 0; border-bottom: 1px solid var(--border-color);">${qty}x ${itemName} <span style="float: right;">₹${itemTotal.toFixed(2)}</span></li>`;
@@ -275,7 +298,7 @@ async function processCheckout() {
         // 3. Handle Success vs Insufficient Funds
         if (response.ok) {
             alert(`Order Dispatched! Remaining balance: ₹${data.new_balance.toFixed(2)}`);
-            
+
             // Clear the cart and update UI
             activeCart = [];
             cartTotal = 0;
