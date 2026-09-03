@@ -9,11 +9,7 @@ from google import genai
 import asyncio
 import sqlite3
 import os
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("🚨 GEMINI_API_KEY environment variable is missing!")
-
-client = genai.aio.Client(api_key=api_key)
+client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3PefX3A")
 
 # 1. Initialize a Mock CSD SQL Database
 def setup_mock_database():
@@ -243,7 +239,7 @@ def update_order_status(
     delivery_db.commit()
     
     return {"message": f"Order #{order_id} status updated to {status_req.status}"}
-client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3PefX3A")
+
 
 # 1. Update the Persona to stop the repetitive greetings
 sys_prompt = """
