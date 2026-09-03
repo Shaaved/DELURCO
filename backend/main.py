@@ -6,6 +6,50 @@ from pydantic import BaseModel
 from typing import List
 from datetime import timedelta
 from google import genai
+import asyncio
+import sqlite3
+import os
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("🚨 GEMINI_API_KEY environment variable is missing!")
+
+client = genai.aio.Client(api_key=api_key)
+
+# 1. Initialize a Mock CSD SQL Database
+def setup_mock_database():
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS inventory 
+                 (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)''')
+    
+    # Check if table is empty, if so, insert mock data
+    cursor.execute("SELECT COUNT(*) FROM inventory")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Maggi Noodles', 12.0, 50)")
+        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Lifebuoy Soap', 25.0, 10)")
+        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Parle-G Biscuits', 5.0, 0)") # Out of stock!
+        conn.commit()
+    conn.close()
+
+setup_mock_database()
+
+# 2. CREATE THE AI TOOL
+# The docstring (the text in the """ quotes) is physically read by the AI so it knows how to use it!
+def check_inventory(item_name: str) -> str:
+    """Always use this tool to search the canteen database for an item's price and available stock."""
+    print(f"🤖 AI is querying the database for: {item_name}") # Watch this trigger in your terminal!
+    
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    # Search for items that match the name
+    cursor.execute("SELECT name, price, stock FROM inventory WHERE name LIKE ?", (f"%{item_name}%",))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        return f"DATABASE RESULT: Item found: {result[0]}, Price: ₹{result[1]}, Stock available: {result[2]}"
+    else:
+        return f"DATABASE RESULT: Item '{item_name}' does not exist in the canteen database."
 
 
 # (Keep all your existing FastAPI, SQLAlchemy, and Pydantic imports)
@@ -207,33 +251,39 @@ You are the DELURC Canteen AI Assistant. You help users order groceries.
 IMPORTANT RULES: 
 - Say hello in reply to the first message only.
 - Do not say 'Hello' or greet the user on every message.
-- Remember the items the user adds to their cart.
-- Be concise and conversational.
+- You MUST use the `check_inventory` tool BEFORE confirming any order.
+- If the item is not in the database, tell the user we don't carry it.
+- If the requested quantity is greater than the available stock, apologize and offer the maximum available amount.
+- ONLY output the ||CART_ADD: Name, Price, Qty|| tag if the database confirms we have enough stock.
 """
 
-# 1. Start the session using the ASYNC client (client.aio)
 chat_session = client.aio.chats.create(
     model='gemini-3.6-flash',
     config=genai.types.GenerateContentConfig(
         system_instruction=sys_prompt,
+        tools=[check_inventory], # We just handed the AI the database keys!
+        temperature=0.1, # Low temperature makes the AI more precise and factual
     )
 )
+# 1. Create the Traffic Light for the AI
+chat_lock = asyncio.Lock()
+
+# (Keep your sys_prompt and chat_session here exactly as they are)
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
-    # 2. Make the generator async so it doesn't block the server
     async def stream_generator():
-        try:
-            # Notice the 'await' and 'async for' here!
-            response_stream = await chat_session.send_message_stream(req.message)
-            async for chunk in response_stream:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as e:
-            print(f"🚨 STREAM ERROR: {str(e)}")
-            yield "⚠️ Connection lost."
+        # 2. Turn on the traffic light so messages safely wait their turn!
+        async with chat_lock:
+            try:
+                response_stream = await chat_session.send_message_stream(req.message)
+                async for chunk in response_stream:
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as e:
+                print(f"🚨 STREAM ERROR: {str(e)}")
+                yield "⚠️ Connection lost."
 
-    # 3. Add strict headers to force the data through the buffer
     return StreamingResponse(
         stream_generator(), 
         media_type="text/event-stream",

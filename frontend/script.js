@@ -159,6 +159,53 @@ async function placeOrder() {
     }
 }
 
+
+function renderCart() {
+    // Find the cart container (adjust ID if yours differs)
+    let cartContainer = document.getElementById("active-cart") || document.querySelector("[data-cart-container]");
+    
+    // Fallback search if a specific ID wasn't set on the cart card
+    if (!cartContainer) {
+        const headers = Array.from(document.querySelectorAll("h2, h3, div, span"));
+        const cartHeader = headers.find(el => el.textContent.includes("Active Cart"));
+        if (cartHeader && cartHeader.parentElement) {
+            cartContainer = cartHeader.parentElement.querySelector("div:last-child");
+        }
+    }
+
+    if (!cartContainer) return;
+
+    if (activeCart.length === 0) {
+        cartContainer.innerHTML = `<p class="text-slate-400 text-sm">Your cart is currently empty.</p>`;
+        return;
+    }
+
+    let total = 0;
+    let itemsHTML = activeCart.map((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        return `
+            <div class="flex justify-between items-center py-2 border-b border-slate-700/60 text-sm">
+                <div>
+                    <span class="font-medium text-slate-200">${item.name}</span>
+                    <span class="text-xs text-slate-400 block">₹${item.price} × ${item.quantity}</span>
+                </div>
+                <span class="font-semibold text-emerald-400">₹${itemTotal.toFixed(2)}</span>
+            </div>
+        `;
+    }).join("");
+
+    cartContainer.innerHTML = `
+        <div class="space-y-1">
+            ${itemsHTML}
+            <div class="pt-3 flex justify-between items-center text-sm font-bold text-white">
+                <span>Total Amount:</span>
+                <span class="text-emerald-400">₹${total.toFixed(2)}</span>
+            </div>
+        </div>
+    `;
+}
+
 // --- CHAT LOGIC ---
 // Function to handle sending the chat message
 async function sendChatMessage() {
@@ -168,7 +215,7 @@ async function sendChatMessage() {
 
     if (!message) return;
 
-    // 1. Display User Message
+    // 1. Render User Message
     chatHistory.innerHTML += `
         <div class="mb-4 text-right">
             <span class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg max-w-[80%] text-sm">
@@ -176,16 +223,15 @@ async function sendChatMessage() {
             </span>
         </div>
     `;
-
     inputField.value = "";
     chatHistory.scrollTop = chatHistory.scrollHeight;
 
-    // 2. Create an empty bubble for the AI that we will fill up word-by-word
-    const botMessageId = "bot-" + Date.now(); // Create a unique ID
+    // 2. Setup Bot Message Bubble
+    const botMessageId = "bot-" + Date.now();
     chatHistory.innerHTML += `
         <div class="mb-4 text-left">
             <span id="${botMessageId}" class="inline-block bg-slate-700 text-slate-200 border border-slate-600 px-4 py-2 rounded-lg max-w-[80%] text-sm">
-                🤖 <span class="animate-pulse text-emerald-500">...</span>
+                🤖 
             </span>
         </div>
     `;
@@ -198,49 +244,60 @@ async function sendChatMessage() {
             body: JSON.stringify({ message: message })
         });
 
-        if (!response.ok) throw new Error("Server rejected the chat request.");
+        if (!response.ok) throw new Error("Server rejected chat request.");
 
-        // 3. Catch the stream and type it out in real-time
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         const botBubble = document.getElementById(botMessageId);
+        let accumulatedRawText = "";
 
-        botBubble.innerHTML = "🤖 "; // Clear the loading dots
-
-      while (true) {
+        // 3. Stream text and accumulate full response
+        while (true) {
             const { done, value } = await reader.read();
-            if (done) break; 
-            
+            if (done) break;
+
             const textChunk = decoder.decode(value, { stream: true });
-            
-            // 1. Safely escape characters (but don't replace newlines just yet!)
-            const safeText = textChunk
+            accumulatedRawText += textChunk;
+
+            // Only display text that does not belong to the secret tag
+            const cleanDisplay = accumulatedRawText
+                .replace(/\|\|CART_ADD:.*?\|\|/g, "")
+                .replace(/\|\|CART_ADD:.*$/g, "") // hides partial tag as it streams
                 .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-                
-            // 2. THE TYPING MAGIC: Loop through the chunk one character at a time
-            for (let i = 0; i < safeText.length; i++) {
-                
-                // Handle line breaks correctly
-                if (safeText[i] === '\n') {
-                    botBubble.innerHTML += '<br>';
-                } else {
-                    botBubble.innerHTML += safeText[i];
-                }
-                
-                // Auto-scroll as it types
-                chatHistory.scrollTop = chatHistory.scrollHeight; 
-                
-                // 3. The Throttle: Wait 15 milliseconds before typing the next letter
-                await new Promise(resolve => setTimeout(resolve, 15)); 
+                .replace(/>/g, "&gt;")
+                .replace(/\n/g, "<br>");
+
+            botBubble.innerHTML = "🤖 " + cleanDisplay;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            await new Promise(resolve => setTimeout(resolve, 15));
+        }
+
+        // 4. Intercept all ||CART_ADD: Name, Price, Qty|| tags
+        const cartTagRegex = /\|\|CART_ADD:\s*(.*?),\s*(\d+(?:\.\d+)?),\s*(\d+)\|\|/g;
+        let match;
+        while ((match = cartTagRegex.exec(accumulatedRawText)) !== null) {
+            const itemName = match[1].trim();
+            const price = parseFloat(match[2]);
+            const quantity = parseInt(match[3], 10);
+
+            // Update local cart state
+            const existingIndex = activeCart.findIndex(i => i.name.toLowerCase() === itemName.toLowerCase());
+            if (existingIndex > -1) {
+                activeCart[existingIndex].quantity += quantity;
+            } else {
+                activeCart.push({ name: itemName, price: price, quantity: quantity });
             }
         }
+
+        // 5. Update visual cart UI
+        renderCart();
+
     } catch (error) {
         console.error("Chat Error:", error);
         document.getElementById(botMessageId).innerHTML = "⚠️ Connection error.";
     }
 }
-
 // Allow pressing "Enter" to send the message
 document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chat-input");
