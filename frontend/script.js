@@ -370,3 +370,50 @@ async function processCheckout() {
         alert("Network error during checkout.");
     }
 }
+async function processCheckout() {
+    if (activeCart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+    }
+
+    // Change the button text so the user knows it's loading
+    const checkoutBtn = document.getElementById("checkout-btn"); // Update this ID if yours is different!
+    if(checkoutBtn) checkoutBtn.innerText = "Processing...";
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/checkout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: activeCart })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert("✅ " + data.message);
+            
+            // Empty the cart and update the UI
+            activeCart = [];
+            renderCart(); 
+            
+            // Optionally, have the AI confirm the order in the chat!
+            const chatHistory = document.getElementById("chat-history");
+            chatHistory.innerHTML += `
+                <div class="mb-4 text-left">
+                    <span class="inline-block bg-emerald-600/20 text-emerald-400 border border-emerald-500/50 px-4 py-2 rounded-lg max-w-[80%] text-sm font-medium">
+                        ✅ Payment successful! Your inventory has been updated.
+                    </span>
+                </div>
+            `;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        } else {
+            alert("❌ Checkout failed: " + data.message);
+        }
+    } catch (error) {
+        console.error("Checkout Error:", error);
+        alert("Connection error during checkout.");
+    } finally {
+        // Reset the button text
+        if(checkoutBtn) checkoutBtn.innerText = "SECURE CHECKOUT";
+    }
+}
