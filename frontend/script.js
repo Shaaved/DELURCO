@@ -288,11 +288,11 @@ async function sendChatMessage() {
             } else {
                 activeCart.push({ name: itemName, price: price, quantity: quantity });
             }
+            showToast(itemName);
         }
 
         // 5. Update visual cart UI
         renderCart();
-
     } catch (error) {
         console.error("Chat Error:", error);
         document.getElementById(botMessageId).innerHTML = "⚠️ Connection error.";
@@ -416,4 +416,34 @@ async function processCheckout() {
         // Reset the button text
         if(checkoutBtn) checkoutBtn.innerText = "SECURE CHECKOUT";
     }
+}
+// Toggles the AI Chat Widget open and closed
+function toggleChat() {
+    const chatWindow = document.getElementById("ai-chat-window");
+    if (chatWindow.classList.contains("hidden")) {
+        chatWindow.classList.remove("hidden");
+        chatWindow.classList.add("flex");
+    } else {
+        chatWindow.classList.add("hidden");
+        chatWindow.classList.remove("flex");
+    }
+}
+
+// Triggers the beautiful bottom popup
+function showToast(itemName) {
+    const toast = document.getElementById("toast-notification");
+    const toastMessage = document.getElementById("toast-message");
+    
+    // Update the text dynamically
+    toastMessage.innerText = `✅ ${itemName} added, let's proceed to checkout!`;
+    
+    // Slide it up and fade it in
+    toast.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
+    toast.classList.add("opacity-100", "translate-y-0");
+    
+    // Automatically hide it after 5 seconds
+    setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
+    }, 5000);
 }

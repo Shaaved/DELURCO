@@ -9,62 +9,88 @@
 </head>
 <body class="bg-slate-900 text-white font-sans h-screen flex flex-col">
 
-    <!-- Navbar (Pinned to top) -->
-    <nav class="w-full px-10 py-4 flex justify-between items-center bg-slate-800 shadow-lg shrink-0">
-        <h2 class="text-2xl tracking-wide font-bold m-0 text-white">DELURCO</h2>
-        <div class="flex gap-8">
-            <a href="index.html" class="text-slate-300 hover:text-emerald-500 font-medium transition-colors">Logout</a>
-        </div>
-    </nav>
+   <!-- 1. Top Navigation Bar -->
+<nav class="flex justify-between items-center p-6 bg-gray-900 text-white shadow-md">
+    <div class="text-2xl font-bold tracking-widest text-emerald-400">DELURC</div>
+    <div class="flex space-x-4">
+        <button id="cart-btn" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 px-5 py-2 rounded-lg font-medium transition-colors">
+            🛒 Cart (<span id="cart-count">0</span>)
+        </button>
+        <button id="logout-btn" class="bg-red-600/20 text-red-500 border border-red-500/50 hover:bg-red-600 hover:text-white px-5 py-2 rounded-lg font-medium transition-colors">
+            Logout
+        </button>
+    </div>
+</nav>
 
-    <!-- Main Dashboard Grid -->
-    <!-- flex-col on mobile, md:flex-row on desktop. gap-6 adds spacing! -->
-    <main class="flex-1 overflow-hidden p-4 md:p-8 flex flex-col md:flex-row gap-6 max-w-7xl mx-auto w-full">
+<!-- 2. Main Center Categories -->
+<main class="flex flex-col items-center justify-center mt-32">
+    <h1 class="text-4xl font-bold text-gray-100 mb-12">What are you looking for today?</h1>
+    
+    <div class="grid grid-cols-4 gap-12">
+        <!-- Electronics -->
+        <a href="electronics.html" class="group flex flex-col items-center cursor-pointer">
+            <div class="w-36 h-36 bg-indigo-600 rounded-full flex items-center justify-center text-5xl shadow-lg group-hover:scale-110 group-hover:shadow-indigo-500/50 transition-all duration-300">💻</div>
+            <span class="mt-6 text-lg font-semibold text-gray-300 group-hover:text-white transition-colors">Electronics</span>
+        </a>
         
-        <!-- LEFT COLUMN: Beneficiary Info & Cart -->
-        <div class="w-full md:w-1/3 bg-slate-800 rounded-xl p-6 shadow-xl flex flex-col gap-6 overflow-y-auto">
-            
-            <!-- ID Card -->
-            <div class="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                <h3 class="text-emerald-400 font-bold mb-2">👤 Beneficiary Profile</h3>
-                <p class="text-sm text-slate-300">Smart Card: <span id="display-card-id" class="text-white font-mono font-bold">Loading...</span></p>
-                <p class="text-sm text-slate-300 mt-1">Balance: ₹<span id="grocery-quota" class="text-white font-bold">0.00</span></p>
-            </div>
+        <!-- Grocery -->
+        <a href="grocery.html" class="group flex flex-col items-center cursor-pointer">
+            <div class="w-36 h-36 bg-emerald-600 rounded-full flex items-center justify-center text-5xl shadow-lg group-hover:scale-110 group-hover:shadow-emerald-500/50 transition-all duration-300">🍎</div>
+            <span class="mt-6 text-lg font-semibold text-gray-300 group-hover:text-white transition-colors">Grocery</span>
+        </a>
+        
+        <!-- Fresh -->
+        <a href="fresh.html" class="group flex flex-col items-center cursor-pointer">
+            <div class="w-36 h-36 bg-sky-500 rounded-full flex items-center justify-center text-5xl shadow-lg group-hover:scale-110 group-hover:shadow-sky-500/50 transition-all duration-300">🥬</div>
+            <span class="mt-6 text-lg font-semibold text-gray-300 group-hover:text-white transition-colors">Fresh</span>
+        </a>
+        
+        <!-- Vehicles -->
+        <a href="vehicles.html" class="group flex flex-col items-center cursor-pointer">
+            <div class="w-36 h-36 bg-amber-500 rounded-full flex items-center justify-center text-5xl shadow-lg group-hover:scale-110 group-hover:shadow-amber-500/50 transition-all duration-300">🚗</div>
+            <span class="mt-6 text-lg font-semibold text-gray-300 group-hover:text-white transition-colors">Vehicles</span>
+        </a>
+    </div>
+</main>
 
-            <!-- Active Cart -->
-            <div class="flex-1">
-                <h3 class="text-emerald-400 font-bold mb-4">🛒 Active Cart</h3>
-                <div id="cart-items" class="text-sm text-slate-400">
-                    Your cart is currently empty.
-                </div>
-            </div>
+<!-- 3. The Toast Popup (Hidden by default) -->
+<div id="toast-notification" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-4 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none z-50 flex items-center space-x-4">
+    <span id="toast-message" class="font-medium">Item added!</span>
+    <button onclick="processCheckout()" class="bg-white text-emerald-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-100 transition-colors">
+        Checkout
+    </button>
+</div>
 
-            <button id="checkout-btn" onclick="processCheckout()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md transition-colors mt-auto shadow-lg">
-                SECURE CHECKOUT
-            </button>
+<!-- 4. Floating AI Assistant Widget -->
+<div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    
+    <!-- The Chat Window (Hidden by default) -->
+    <div id="ai-chat-window" class="hidden w-[350px] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl mb-4 flex-col overflow-hidden transition-all">
+        <div class="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+            <span class="font-bold text-white flex items-center space-x-2">
+                <span>🤖</span>
+                <span>DELURC AI</span>
+            </span>
+            <button onclick="toggleChat()" class="text-gray-400 hover:text-white font-bold">✖</button>
         </div>
-
-        <!-- RIGHT COLUMN: AI Assistant -->
-        <div class="w-full md:w-2/3 bg-slate-800 rounded-xl p-6 shadow-xl flex flex-col h-[500px] md:h-auto">
-            <h3 class="text-emerald-400 font-bold mb-4 flex items-center gap-2">
-                🤖 DELURCO AI Assistant
-            </h3>
-            
-            <!-- Chat History Area -->
-            <div id="chat-history" class="flex-1 bg-slate-900 rounded-lg p-4 overflow-y-auto mb-4 border border-slate-700">
-                <p class="text-slate-400 text-sm italic">System: Secure connection to PyTorch Neural Net established.</p>
-            </div>
-
-            <!-- Chat Input Area -->
-            <div class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Ask for groceries..." 
-                    class="flex-1 p-3 rounded-md border border-slate-600 bg-slate-700 text-white focus:outline-none focus:border-emerald-500">
-                <button onclick="sendChatMessage()" 
-                    class="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-md transition-colors">
-                    SEND
-                </button>
-            </div>
+        
+        <!-- Chat History -->
+        <div id="chat-history" class="h-80 p-4 overflow-y-auto text-sm text-gray-300 space-y-4">
+            <!-- JavaScript will inject bubbles here -->
         </div>
+        
+        <!-- Input Area -->
+        <div class="p-3 bg-gray-800 border-t border-gray-700 flex">
+            <input type="text" id="chat-input" class="flex-1 bg-gray-700 text-white rounded-l-lg px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Ask for items...">
+            <button id="send-btn" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-r-lg font-bold text-white transition-colors">Send</button>
+        </div>
+    </div>
+
+    <!-- The Floating Action Button (FAB) -->
+    <button onclick="toggleChat()" class="w-16 h-16 bg-emerald-600 rounded-full shadow-2xl flex items-center justify-center text-3xl hover:bg-emerald-500 hover:scale-105 transition-all">
+        🤖
+    </button>
+</div>
         
     </main>
 
