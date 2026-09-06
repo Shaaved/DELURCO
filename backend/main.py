@@ -17,6 +17,14 @@ def setup_mock_database():
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS inventory 
                  (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        smart_card_id TEXT PRIMARY KEY,
+        name TEXT,
+        pin TEXT,
+        balance REAL
+    )
+''')
     
     # Check if table is empty, if so, insert mock data
     cursor.execute("SELECT COUNT(*) FROM inventory")
@@ -24,6 +32,7 @@ def setup_mock_database():
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Maggi Noodles', 12.0, 50)")
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Lifebuoy Soap', 25.0, 10)")
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Parle-G Biscuits', 5.0, 0)") # Out of stock!
+        cursor.execute("INSERT OR IGNORE INTO users (smart_card_id, name, pin, balance) VALUES ('CSD-1002', 'Test user', '1234', 500.00)")
         conn.commit()
     conn.close()
 
@@ -423,3 +432,32 @@ def process_checkout(
     delivery_db.commit()
 
     return {"status": "success", "new_balance": csd_record.monthly_grocery_limit}
+class LoginRequest(BaseModel):
+    smart_card_id: str
+    pin: str
+
+@app.post("/auth/login")
+async def login_user(req: LoginRequest):
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("SELECT name, balance FROM users WHERE smart_card_id = ? AND pin = ?", (req.smart_card_id, req.pin))
+        user = cursor.fetchone()
+        
+        if user:
+            return {
+                "success": True, 
+                "message": f"Welcome back, {user[0]}!",
+                "user": {
+                    "smart_card_id": req.smart_card_id,
+                    "name": user[0],
+                    "balance": user[1]
+                }
+            }
+        else:
+            return {"success": False, "message": "Invalid Smart Card ID or PIN."}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()

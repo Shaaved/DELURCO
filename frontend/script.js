@@ -456,3 +456,51 @@ function toggleCart() {
     const cartSlideout = document.getElementById("cart-slideout");
     cartSlideout.classList.toggle("translate-x-full");
 }
+// Function to handle the login attempt
+async function attemptLogin() {
+    const cardInput = document.getElementById("smart-card-id").value.toUpperCase();
+    const pinInput = document.getElementById("pin").value;
+    const errorMsg = document.getElementById("login-error");
+    const loginBtn = document.getElementById("login-btn");
+
+    if (!cardInput || !pinInput) {
+        errorMsg.innerText = "Please enter both ID and PIN.";
+        errorMsg.classList.remove("hidden");
+        return;
+    }
+
+    loginBtn.innerText = "VERIFYING...";
+    errorMsg.classList.add("hidden");
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ smart_card_id: cardInput, pin: pinInput })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Save the user data to the browser so the app remembers them
+            localStorage.setItem("delurco_user", JSON.stringify(data.user));
+            
+            // Redirect to the home page!
+            window.location.href = "index.html";
+        } else {
+            errorMsg.innerText = data.message;
+            errorMsg.classList.remove("hidden");
+        }
+    } catch (error) {
+        errorMsg.innerText = "Connection error to server.";
+        errorMsg.classList.remove("hidden");
+    } finally {
+        loginBtn.innerText = "AUTHENTICATE";
+    }
+}
+
+// Function to automatically log out
+function logoutUser() {
+    localStorage.removeItem("delurco_user");
+    window.location.href = "login.html";
+}
