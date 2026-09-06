@@ -1,5 +1,30 @@
 const API_BASE_URL = "https://delurco.onrender.com";;
 let currentSmartCardId = "";
+// Run this immediately when any page loads
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Check which page we are on
+    const isLoginPage = window.location.pathname.includes("login.html");
+    
+    // 2. Look for the saved user in the browser
+    const savedUser = localStorage.getItem("delurco_user");
+
+    if (!savedUser && !isLoginPage) {
+        // If they aren't logged in and try to access the store, kick them to login!
+        window.location.href = "login.html";
+    } else if (savedUser) {
+        // If they ARE logged in, parse their data
+        const user = JSON.parse(savedUser);
+        
+        // Optional: Update the UI to show their Smart Card ID if you have a spot for it!
+        // document.getElementById("user-display").innerText = user.smart_card_id;
+        
+        // If they are on the login page but already logged in, send them to the store
+        if (isLoginPage) {
+            // NOTE: Change "index.html" to "home.html" if that's what you named your main page!
+            window.location.href = "index.html"; 
+        }
+    }
+});
 
 // --- UNIFIED CART STATE ---
 let cart = [];
@@ -487,7 +512,7 @@ async function attemptLogin() {
             localStorage.setItem("delurco_user", JSON.stringify(data.user));
 
             // Redirect to the home page!
-            window.location.href = "index.html";
+            window.location.href = "home.html";
         } else {
             errorMsg.innerText = data.message;
             errorMsg.classList.remove("hidden");
