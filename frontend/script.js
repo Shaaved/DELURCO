@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // If they are on the login page but already logged in, send them to the store
         if (isLoginPage) {
             // NOTE: Change "index.html" to "home.html" if that's what you named your main page!
-            window.location.href = "index.html"; 
+            window.location.href = "home.html"; 
         }
     }
 });
