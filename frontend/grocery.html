@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DELURCO - Groceries</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 min-h-screen text-gray-200">
+
+    <!-- 1. Top Navigation Bar (Same as Home) -->
+    <nav class="flex justify-between items-center p-6 bg-gray-900 shadow-md">
+        <!-- Clickable logo to go back home -->
+        <a href="index.html" class="text-2xl font-bold tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors">DELURCO</a>
+        <div class="flex space-x-4">
+            <button id="cart-btn" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 px-5 py-2 rounded-lg font-medium transition-colors">
+                🛒 Cart (<span id="cart-count">0</span>)
+            </button>
+        </div>
+    </nav>
+
+    <!-- 2. Main Product Grid -->
+    <main class="p-10 max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-white flex items-center space-x-3">
+            <span>🍎</span>
+            <span>Groceries & Essentials</span>
+        </h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            
+            <!-- Product Card: Maggi -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg">
+                <div class="h-40 bg-gray-800 rounded-lg mb-4 flex items-center justify-center text-5xl">🍜</div>
+                <h2 class="text-xl font-bold text-white">Maggi Noodles</h2>
+                <p class="text-gray-400 text-sm mb-4">2-Minute Instant Noodles</p>
+                <div class="mt-auto flex justify-between items-center">
+                    <span class="text-emerald-400 font-bold text-lg">₹14</span>
+                    <!-- The Magic Button -->
+                    <button onclick="manualAddToCart('Maggi', 14)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add +</button>
+                </div>
+            </div>
+
+            <!-- Product Card: Lifebuoy -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg">
+                <div class="h-40 bg-gray-800 rounded-lg mb-4 flex items-center justify-center text-5xl">🧼</div>
+                <h2 class="text-xl font-bold text-white">Lifebuoy Soap</h2>
+                <p class="text-gray-400 text-sm mb-4">Antibacterial Bathing Bar</p>
+                <div class="mt-auto flex justify-between items-center">
+                    <span class="text-emerald-400 font-bold text-lg">₹35</span>
+                    <button onclick="manualAddToCart('Lifebuoy', 35)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add +</button>
+                </div>
+            </div>
+
+            <!-- Product Card: Parle-G -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col hover:border-emerald-500/50 transition-colors shadow-lg">
+                <div class="h-40 bg-gray-800 rounded-lg mb-4 flex items-center justify-center text-5xl">🍪</div>
+                <h2 class="text-xl font-bold text-white">Parle-G</h2>
+                <p class="text-gray-400 text-sm mb-4">Original Glucose Biscuits</p>
+                <div class="mt-auto flex justify-between items-center">
+                    <span class="text-emerald-400 font-bold text-lg">₹10</span>
+                    <button onclick="manualAddToCart('Parle-G', 10)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add +</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 3. The Toast Notification -->
+    <div id="toast-notification" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-4 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none z-50 flex items-center space-x-4">
+        <span id="toast-message" class="font-medium">Item added!</span>
+        <button onclick="processCheckout()" class="bg-white text-emerald-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-100 transition-colors">Checkout</button>
+    </div>
+
+    <!-- 4. Floating AI Chat Widget -->
+    <!-- (Paste your exact floating widget HTML from the home page here!) -->
+<!-- Slide-out Cart Panel (Hidden by default via translate-x-full) -->
+<div id="cart-slideout" class="fixed top-0 right-0 w-96 h-full bg-gray-900 border-l border-gray-700 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+    <!-- Header -->
+    <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-white">Your Cart</h2>
+        <button onclick="toggleCart()" class="text-gray-400 hover:text-white font-bold text-xl">✖</button>
+    </div>
+    
+    <!-- Cart Items Container -->
+    <div id="cart-items-container" class="flex-1 p-6 overflow-y-auto space-y-4">
+        <!-- JavaScript will inject cart items here -->
+        <p class="text-gray-500 text-center mt-10">Your cart is empty.</p>
+    </div>
+    
+    <!-- Footer / Checkout -->
+    <div class="p-6 border-t border-gray-800 bg-gray-950">
+        <div class="flex justify-between items-center mb-4 text-white font-bold text-lg">
+            <span>Total:</span>
+            <span id="cart-total" class="text-emerald-400">₹0</span>
+        </div>
+        <button id="checkout-btn" onclick="processCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors">
+            SECURE CHECKOUT
+        </button>
+    </div>
+</div>
+    <!-- Load the Logic -->
+    <script src="script.js"></script>
+</body>
+</html>

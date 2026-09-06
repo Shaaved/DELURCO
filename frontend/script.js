@@ -161,51 +161,38 @@ async function placeOrder() {
 
 
 function renderCart() {
-    // Find the cart container (adjust ID if yours differs)
-    let cartContainer = document.getElementById("active-cart") || document.querySelector("[data-cart-container]");
+    const container = document.getElementById("cart-items-container");
+    const countSpan = document.getElementById("cart-count");
+    const totalSpan = document.getElementById("cart-total");
     
-    // Fallback search if a specific ID wasn't set on the cart card
-    if (!cartContainer) {
-        const headers = Array.from(document.querySelectorAll("h2, h3, div, span"));
-        const cartHeader = headers.find(el => el.textContent.includes("Active Cart"));
-        if (cartHeader && cartHeader.parentElement) {
-            cartContainer = cartHeader.parentElement.querySelector("div:last-child");
-        }
-    }
-
-    if (!cartContainer) return;
+    container.innerHTML = ""; // Clear current items
+    let total = 0;
+    let itemCount = 0;
 
     if (activeCart.length === 0) {
-        cartContainer.innerHTML = `<p class="text-slate-400 text-sm">Your cart is currently empty.</p>`;
-        return;
+        container.innerHTML = '<p class="text-gray-500 text-center mt-10">Your cart is empty.</p>';
+    } else {
+        activeCart.forEach((item, index) => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            itemCount += item.quantity;
+
+            container.innerHTML += `
+                <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg">
+                    <div>
+                        <h3 class="font-bold text-white">${item.name}</h3>
+                        <p class="text-sm text-gray-400">₹${item.price} x ${item.quantity}</p>
+                    </div>
+                    <div class="font-bold text-emerald-400">₹${itemTotal}</div>
+                </div>
+            `;
+        });
     }
 
-    let total = 0;
-    let itemsHTML = activeCart.map((item, index) => {
-        const itemTotal = item.price * item.quantity;
-        total += itemTotal;
-        return `
-            <div class="flex justify-between items-center py-2 border-b border-slate-700/60 text-sm">
-                <div>
-                    <span class="font-medium text-slate-200">${item.name}</span>
-                    <span class="text-xs text-slate-400 block">₹${item.price} × ${item.quantity}</span>
-                </div>
-                <span class="font-semibold text-emerald-400">₹${itemTotal.toFixed(2)}</span>
-            </div>
-        `;
-    }).join("");
-
-    cartContainer.innerHTML = `
-        <div class="space-y-1">
-            ${itemsHTML}
-            <div class="pt-3 flex justify-between items-center text-sm font-bold text-white">
-                <span>Total Amount:</span>
-                <span class="text-emerald-400">₹${total.toFixed(2)}</span>
-            </div>
-        </div>
-    `;
+    // Update numbers
+    if (countSpan) countSpan.innerText = itemCount;
+    if (totalSpan) totalSpan.innerText = `₹${total}`;
 }
-
 // --- CHAT LOGIC ---
 // Function to handle sending the chat message
 async function sendChatMessage() {
@@ -446,4 +433,26 @@ function showToast(itemName) {
         toast.classList.remove("opacity-100", "translate-y-0");
         toast.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
     }, 5000);
+}
+// Function for standard HTML "Add to Cart" buttons
+function manualAddToCart(itemName, price) {
+    // 1. Check if it's already in the cart
+    const existingIndex = activeCart.findIndex(item => item.name.toLowerCase() === itemName.toLowerCase());
+    
+    if (existingIndex > -1) {
+        activeCart[existingIndex].quantity += 1; // Add 1 more if it exists
+    } else {
+        activeCart.push({ name: itemName, price: price, quantity: 1 }); // Add new item
+    }
+    
+    // 2. Update the UI
+    renderCart();
+    
+    // 3. Trigger that beautiful green toast popup!
+    showToast(itemName);
+}
+// Toggle the Cart Slide-out
+function toggleCart() {
+    const cartSlideout = document.getElementById("cart-slideout");
+    cartSlideout.classList.toggle("translate-x-full");
 }
