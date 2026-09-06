@@ -164,7 +164,7 @@ function renderCart() {
     const container = document.getElementById("cart-items-container");
     const countSpan = document.getElementById("cart-count");
     const totalSpan = document.getElementById("cart-total");
-    
+
     container.innerHTML = ""; // Clear current items
     let total = 0;
     let itemCount = 0;
@@ -365,7 +365,7 @@ async function processCheckout() {
 
     // Change the button text so the user knows it's loading
     const checkoutBtn = document.getElementById("checkout-btn"); // Update this ID if yours is different!
-    if(checkoutBtn) checkoutBtn.innerText = "Processing...";
+    if (checkoutBtn) checkoutBtn.innerText = "Processing...";
 
     try {
         const response = await fetch(`${API_BASE_URL}/checkout`, {
@@ -378,11 +378,11 @@ async function processCheckout() {
 
         if (data.success) {
             alert("✅ " + data.message);
-            
+
             // Empty the cart and update the UI
             activeCart = [];
-            renderCart(); 
-            
+            renderCart();
+
             // Optionally, have the AI confirm the order in the chat!
             const chatHistory = document.getElementById("chat-history");
             chatHistory.innerHTML += `
@@ -401,7 +401,7 @@ async function processCheckout() {
         alert("Connection error during checkout.");
     } finally {
         // Reset the button text
-        if(checkoutBtn) checkoutBtn.innerText = "SECURE CHECKOUT";
+        if (checkoutBtn) checkoutBtn.innerText = "SECURE CHECKOUT";
     }
 }
 // Toggles the AI Chat Widget open and closed
@@ -420,14 +420,14 @@ function toggleChat() {
 function showToast(itemName) {
     const toast = document.getElementById("toast-notification");
     const toastMessage = document.getElementById("toast-message");
-    
+
     // Update the text dynamically
     toastMessage.innerText = `✅ ${itemName} added, let's proceed to checkout!`;
-    
+
     // Slide it up and fade it in
     toast.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
     toast.classList.add("opacity-100", "translate-y-0");
-    
+
     // Automatically hide it after 5 seconds
     setTimeout(() => {
         toast.classList.remove("opacity-100", "translate-y-0");
@@ -438,16 +438,16 @@ function showToast(itemName) {
 function manualAddToCart(itemName, price) {
     // 1. Check if it's already in the cart
     const existingIndex = activeCart.findIndex(item => item.name.toLowerCase() === itemName.toLowerCase());
-    
+
     if (existingIndex > -1) {
         activeCart[existingIndex].quantity += 1; // Add 1 more if it exists
     } else {
         activeCart.push({ name: itemName, price: price, quantity: 1 }); // Add new item
     }
-    
+
     // 2. Update the UI
     renderCart();
-    
+
     // 3. Trigger that beautiful green toast popup!
     showToast(itemName);
 }
@@ -473,7 +473,8 @@ async function attemptLogin() {
     errorMsg.classList.add("hidden");
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        // Change the fetch URL inside attemptLogin() to match the backend
+        const response = await fetch(`${API_BASE_URL}/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ smart_card_id: cardInput, pin: pinInput })
@@ -484,7 +485,7 @@ async function attemptLogin() {
         if (data.success) {
             // Save the user data to the browser so the app remembers them
             localStorage.setItem("delurco_user", JSON.stringify(data.user));
-            
+
             // Redirect to the home page!
             window.location.href = "index.html";
         } else {

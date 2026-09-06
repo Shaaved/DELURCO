@@ -103,6 +103,35 @@ class OrderRequest(BaseModel):
     items: List[CartItem] 
 
 # --- ENDPOINTS ---
+class LoginRequest(BaseModel):
+    smart_card_id: str
+    pin: str
+
+@app.post("/api/login")
+async def login_user(req: LoginRequest):
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("SELECT name, balance FROM users WHERE smart_card_id = ? AND pin = ?", (req.smart_card_id, req.pin))
+        user = cursor.fetchone()
+        
+        if user:
+            return {
+                "success": True, 
+                "message": f"Welcome back, {user[0]}!",
+                "user": {
+                    "smart_card_id": req.smart_card_id,
+                    "name": user[0],
+                    "balance": user[1]
+                }
+            }
+        else:
+            return {"success": False, "message": "Invalid Smart Card ID or PIN."}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()
 
 @app.get("/auth/{smart_card_id}")
 def authenticate_and_get_quota(
@@ -432,32 +461,3 @@ def process_checkout(
     delivery_db.commit()
 
     return {"status": "success", "new_balance": csd_record.monthly_grocery_limit}
-class LoginRequest(BaseModel):
-    smart_card_id: str
-    pin: str
-
-@app.post("/auth/login")
-async def login_user(req: LoginRequest):
-    conn = sqlite3.connect("canteen.db")
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute("SELECT name, balance FROM users WHERE smart_card_id = ? AND pin = ?", (req.smart_card_id, req.pin))
-        user = cursor.fetchone()
-        
-        if user:
-            return {
-                "success": True, 
-                "message": f"Welcome back, {user[0]}!",
-                "user": {
-                    "smart_card_id": req.smart_card_id,
-                    "name": user[0],
-                    "balance": user[1]
-                }
-            }
-        else:
-            return {"success": False, "message": "Invalid Smart Card ID or PIN."}
-    except Exception as e:
-        return {"success": False, "message": str(e)}
-    finally:
-        conn.close()
