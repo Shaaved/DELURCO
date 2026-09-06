@@ -32,7 +32,7 @@ def setup_mock_database():
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Maggi Noodles', 12.0, 50)")
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Lifebuoy Soap', 25.0, 10)")
         cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Parle-G Biscuits', 5.0, 0)") # Out of stock!
-        cursor.execute("INSERT OR IGNORE INTO users (smart_card_id, name, pin, balance) VALUES ('CSD-1002', 'Test user', '1234', 500.00)")
+        cursor.execute("INSERT OR IGNORE INTO users (smart_card_id, name, pin, balance) VALUES ('CSD-1001', 'Test user', '1234', 500.00)")
         conn.commit()
     conn.close()
 
