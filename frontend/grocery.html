@@ -46,7 +46,9 @@
                 <div class="mt-auto flex justify-between items-center">
                     <span class="text-emerald-400 font-bold text-lg">₹14</span>
                     <!-- The Magic Button -->
-                    <div class="item-action-container" data-name="Maggi" data-price="14">
+                    <!-- Example for Maggi: Set data-stock to 5 -->
+                    <div class="item-action-container" data-name="Maggi" data-price="14" data-stock="5">
+                        <!-- The button inside stays exactly the same -->
                         <button onclick="manualAddToCart('Maggi', 14)"
                             class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add
                             +</button>
@@ -62,7 +64,7 @@
                 <p class="text-gray-400 text-sm mb-4">Antibacterial Bathing Bar</p>
                 <div class="mt-auto flex justify-between items-center">
                     <span class="text-emerald-400 font-bold text-lg">₹35</span>
-                    <div class="item-action-container" data-name="Lifebuoy" data-price="35">
+                    <div class="item-action-container" data-name="Lifebuoy" data-price="35" data-stock="10">
                         <button onclick="manualAddToCart('Lifebuoy', 35)"
                             class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add
                             +</button>

@@ -2,29 +2,27 @@ const API_BASE_URL = "https://delurco.onrender.com";;
 let currentSmartCardId = "";
 // Run this immediately when any page loads
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Check which page we are on
+    // 1. Check if the current URL contains "login.html"
     const isLoginPage = window.location.pathname.includes("login.html");
 
     // 2. Look for the saved user in the browser
     const savedUser = localStorage.getItem("delurco_user");
 
+    // BOUNCER LOGIC:
     if (!savedUser && !isLoginPage) {
-        // If they aren't logged in and try to access the store, kick them to login!
+        // Condition A: Not logged in, and trying to view the store -> Kick to login
         window.location.href = "login.html";
-    } else if (savedUser) {
-        // If they ARE logged in, parse their data
-        const user = JSON.parse(savedUser);
-
-        // Optional: Update the UI to show their Smart Card ID if you have a spot for it!
-        // document.getElementById("user-display").innerText = user.smart_card_id;
-
-        // If they are on the login page but already logged in, send them to the store
-        if (isLoginPage) {
-            // NOTE: Change "index.html" to "home.html" if that's what you named your main page!
-            window.location.href = "home.html";
-        }
+        return; // Stop running any more code
+    } else if (savedUser && isLoginPage) {
+        // Condition B: Already logged in, but looking at the login screen -> Send to store
+        window.location.href = "index.html";
+        return; // Stop running any more code
     }
-    syncProductCards();
+
+    // 3. If we survived the bouncer, sync the product UI buttons on load!
+    if (typeof syncProductCards === "function") {
+        syncProductCards();
+    }
 });
 
 // --- UNIFIED CART STATE ---
@@ -442,41 +440,25 @@ function toggleChat() {
         chatWindow.classList.remove("flex");
     }
 }
-
-// Triggers the beautiful bottom popup
-function showToast(itemName) {
+// Upgraded Toast Notification
+function showToast(itemName, customMessage = null) {
     const toast = document.getElementById("toast-notification");
     const toastMessage = document.getElementById("toast-message");
 
-    // Update the text dynamically
-    toastMessage.innerText = `✅ ${itemName} added, let's proceed to checkout!`;
+    // If we pass a custom message (like an error), use it. Otherwise, use the success message.
+    if (customMessage) {
+        toastMessage.innerText = customMessage;
+    } else {
+        toastMessage.innerText = `✅ ${itemName} added, let's proceed to checkout!`;
+    }
 
-    // Slide it up and fade it in
     toast.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
     toast.classList.add("opacity-100", "translate-y-0");
 
-    // Automatically hide it after 5 seconds
     setTimeout(() => {
         toast.classList.remove("opacity-100", "translate-y-0");
         toast.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
-    }, 5000);
-}
-// Function for standard HTML "Add to Cart" buttons
-function manualAddToCart(itemName, price) {
-    // 1. Check if it's already in the cart
-    const existingIndex = activeCart.findIndex(item => item.name.toLowerCase() === itemName.toLowerCase());
-
-    if (existingIndex > -1) {
-        activeCart[existingIndex].quantity += 1; // Add 1 more if it exists
-    } else {
-        activeCart.push({ name: itemName, price: price, quantity: 1 }); // Add new item
-    }
-
-    // 2. Update the UI
-    renderCart();
-
-    // 3. Trigger that beautiful green toast popup!
-    showToast(itemName);
+    }, 4000);
 }
 // Toggle the Cart Slide-out
 function toggleCart() {
@@ -532,20 +514,19 @@ function logoutUser() {
     localStorage.removeItem("delurco_user");
     window.location.href = "login.html";
 }
-// Function to update the product cards on the screen
 function syncProductCards() {
-    // Find all action containers on the current page
     const actionContainers = document.querySelectorAll('.item-action-container');
 
     actionContainers.forEach(container => {
         const itemName = container.getAttribute('data-name');
         const itemPrice = parseFloat(container.getAttribute('data-price'));
 
-        // Check if this item is currently in the activeCart
+        // Grab the stock from HTML. If you forget to add it, default to 10.
+        const maxStock = parseInt(container.getAttribute('data-stock')) || 10;
+
         const cartItem = activeCart.find(item => item.name === itemName);
 
         if (cartItem && cartItem.quantity > 0) {
-            // If it IS in the cart, render the + / - UI (Notice the window. prefix!)
             container.innerHTML = `
                 <div class="flex items-center space-x-3 bg-emerald-600 rounded-lg px-2 py-1 shadow-lg">
                     <button onclick="window.decreaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">-</button>
@@ -554,31 +535,47 @@ function syncProductCards() {
                 </div>
             `;
         } else {
-            // If it is NOT in the cart, render the default Add button
+            // WE UPGRADED THIS LINE to pass maxStock into the cart!
             container.innerHTML = `
-                <button onclick="manualAddToCart('${itemName}', ${itemPrice})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-600/20">Add +</button>
+                <button onclick="manualAddToCart('${itemName}', ${itemPrice}, ${maxStock})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-600/20">Add +</button>
             `;
         }
     });
 }
-// Paste these at the VERY BOTTOM of script.js
-window.decreaseQuantity = function (itemName) {
-    const index = activeCart.findIndex(item => item.name === itemName);
-    if (index > -1) {
-        activeCart[index].quantity -= 1;
-        if (activeCart[index].quantity <= 0) {
-            activeCart.splice(index, 1);
-        }
-        renderCart();
-        syncProductCards();
-    }
-};
+// 1. Save the maxStock to the cart array when first added
+function manualAddToCart(itemName, price, maxStock = 10) {
+    const existingIndex = activeCart.findIndex(item => item.name === itemName);
 
+    if (existingIndex > -1) {
+        // If they click Add+ fast, check the limit!
+        if (activeCart[existingIndex].quantity < maxStock) {
+            activeCart[existingIndex].quantity += 1;
+        }
+    } else {
+        // Save the maxStock permanently to this item in the array
+        activeCart.push({ name: itemName, price: price, quantity: 1, stockLimit: maxStock });
+    }
+
+    renderCart();
+    syncProductCards();
+    showToast(itemName);
+}
+
+// 2. Block the plus button if they hit the ceiling
 window.increaseQuantity = function (itemName) {
     const index = activeCart.findIndex(item => item.name === itemName);
+
     if (index > -1) {
-        activeCart[index].quantity += 1;
-        renderCart();
-        syncProductCards();
+        // Fallback to 10 for items saved in old browser memory
+        const limit = activeCart[index].stockLimit || 10;
+
+        if (activeCart[index].quantity < limit) {
+            activeCart[index].quantity += 1;
+            renderCart();
+            syncProductCards();
+        } else {
+            // They hit the limit! Fire the warning toast.
+            showToast(itemName, `⚠️ Only ${limit} ${itemName} left in stock!`);
+        }
     }
 };
