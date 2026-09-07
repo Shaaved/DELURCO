@@ -545,12 +545,12 @@ function syncProductCards() {
         const cartItem = activeCart.find(item => item.name === itemName);
 
         if (cartItem && cartItem.quantity > 0) {
-            // If it IS in the cart, render the + / - UI
+            // If it IS in the cart, render the + / - UI (Notice the window. prefix!)
             container.innerHTML = `
                 <div class="flex items-center space-x-3 bg-emerald-600 rounded-lg px-2 py-1 shadow-lg">
-                    <button onclick="decreaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">-</button>
+                    <button onclick="window.decreaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">-</button>
                     <span class="font-bold text-white w-4 text-center text-sm">${cartItem.quantity}</span>
-                    <button onclick="increaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">+</button>
+                    <button onclick="window.increaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">+</button>
                 </div>
             `;
         } else {
@@ -561,3 +561,24 @@ function syncProductCards() {
         }
     });
 }
+// Paste these at the VERY BOTTOM of script.js
+window.decreaseQuantity = function (itemName) {
+    const index = activeCart.findIndex(item => item.name === itemName);
+    if (index > -1) {
+        activeCart[index].quantity -= 1;
+        if (activeCart[index].quantity <= 0) {
+            activeCart.splice(index, 1);
+        }
+        renderCart();
+        syncProductCards();
+    }
+};
+
+window.increaseQuantity = function (itemName) {
+    const index = activeCart.findIndex(item => item.name === itemName);
+    if (index > -1) {
+        activeCart[index].quantity += 1;
+        renderCart();
+        syncProductCards();
+    }
+};
