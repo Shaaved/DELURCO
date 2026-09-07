@@ -4,7 +4,7 @@ let currentSmartCardId = "";
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Check which page we are on
     const isLoginPage = window.location.pathname.includes("login.html");
-    
+
     // 2. Look for the saved user in the browser
     const savedUser = localStorage.getItem("delurco_user");
 
@@ -14,16 +14,17 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (savedUser) {
         // If they ARE logged in, parse their data
         const user = JSON.parse(savedUser);
-        
+
         // Optional: Update the UI to show their Smart Card ID if you have a spot for it!
         // document.getElementById("user-display").innerText = user.smart_card_id;
-        
+
         // If they are on the login page but already logged in, send them to the store
         if (isLoginPage) {
             // NOTE: Change "index.html" to "home.html" if that's what you named your main page!
-            window.location.href = "home.html"; 
+            window.location.href = "home.html";
         }
     }
+    syncProductCards();
 });
 
 // --- UNIFIED CART STATE ---
@@ -212,6 +213,7 @@ function renderCart() {
                 </div>
             `;
         });
+        syncProductCards();
     }
 
     // Update numbers
@@ -529,4 +531,33 @@ async function attemptLogin() {
 function logoutUser() {
     localStorage.removeItem("delurco_user");
     window.location.href = "login.html";
+}
+// Function to update the product cards on the screen
+function syncProductCards() {
+    // Find all action containers on the current page
+    const actionContainers = document.querySelectorAll('.item-action-container');
+
+    actionContainers.forEach(container => {
+        const itemName = container.getAttribute('data-name');
+        const itemPrice = parseFloat(container.getAttribute('data-price'));
+
+        // Check if this item is currently in the activeCart
+        const cartItem = activeCart.find(item => item.name === itemName);
+
+        if (cartItem && cartItem.quantity > 0) {
+            // If it IS in the cart, render the + / - UI
+            container.innerHTML = `
+                <div class="flex items-center space-x-3 bg-emerald-600 rounded-lg px-2 py-1 shadow-lg">
+                    <button onclick="decreaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">-</button>
+                    <span class="font-bold text-white w-4 text-center text-sm">${cartItem.quantity}</span>
+                    <button onclick="increaseQuantity('${itemName}')" class="w-8 h-8 flex items-center justify-center text-white font-bold hover:bg-emerald-700 rounded-md transition-colors">+</button>
+                </div>
+            `;
+        } else {
+            // If it is NOT in the cart, render the default Add button
+            container.innerHTML = `
+                <button onclick="manualAddToCart('${itemName}', ${itemPrice})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-600/20">Add +</button>
+            `;
+        }
+    });
 }
