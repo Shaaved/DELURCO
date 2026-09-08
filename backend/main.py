@@ -15,8 +15,13 @@ client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3Pe
 def setup_mock_database():
     conn = sqlite3.connect("canteen.db")
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS inventory 
-                 (id INTEGER PRIMARY KEY, name TEXT, price REAL, stock INTEGER)''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS inventory (
+        item_name TEXT PRIMARY KEY,
+        price REAL,
+        stock INTEGER
+    )
+''')
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         smart_card_id TEXT PRIMARY KEY,
@@ -29,11 +34,12 @@ def setup_mock_database():
     # Check if table is empty, if so, insert mock data
     cursor.execute("SELECT COUNT(*) FROM inventory")
     if cursor.fetchone()[0] == 0:
-        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Maggi Noodles', 12.0, 100)")
-        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Lifebuoy Soap', 25.0, 100)")
-        cursor.execute("INSERT INTO inventory (name, price, stock) VALUES ('Parle-G Biscuits', 5.0, 100)") # Out of stock!
-        cursor.execute("INSERT OR IGNORE INTO users (smart_card_id, name, pin, balance) VALUES ('CSD-1001', 'Test user', '1234', 500.00)")
-        conn.commit()
+       cursor.execute("INSERT OR REPLACE INTO inventory (item_name, price, stock) VALUES ('Maggi', 14, 50)")
+       cursor.execute("INSERT OR REPLACE INTO inventory (item_name, price, stock) VALUES ('Lifebuoy', 35, 50)")
+       cursor.execute("INSERT OR REPLACE INTO inventory (item_name, price, stock) VALUES ('Parle-G', 10, 50)")
+       conn.commit()
+       cursor.execute("INSERT OR IGNORE INTO users (smart_card_id, name, pin, balance) VALUES ('CSD-1001', 'Test user', '1234', 500.00)")
+       conn.commit()
     conn.close()
 
 setup_mock_database()
@@ -47,7 +53,7 @@ def check_inventory(item_name: str) -> str:
     conn = sqlite3.connect("canteen.db")
     cursor = conn.cursor()
     # Search for items that match the name
-    cursor.execute("SELECT name, price, stock FROM inventory WHERE name LIKE ?", (f"%{item_name}%",))
+    cursor.execute("SELECT item_name, price, stock FROM inventory WHERE item_name LIKE ?", (f"%{item_name}%",))
     result = cursor.fetchone()
     conn.close()
     

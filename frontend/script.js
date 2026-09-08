@@ -336,96 +336,62 @@ function addToCart(itemName, price, qty) {
     const cartList = document.getElementById("cart-list");
     cartList.innerHTML += `<li style="padding: 5px 0; border-bottom: 1px solid var(--border-color);">${qty}x ${itemName} <span style="float: right;">₹${itemTotal.toFixed(2)}</span></li>`;
 }
-// --- CHECKOUT LOGIC ---
 async function processCheckout() {
-    const smartCardId = document.getElementById("smart-card-input").value.trim();
-
-    // 1. Validation checks
-    if (!smartCardId) {
-        alert("Authentication Error: Please login with your Smart Card first.");
-        return;
-    }
-    if (activeCart.length === 0) {
-        alert("Cart is empty. Ask the AI to add items first.");
-        return;
-    }
-
-    try {
-        // 2. Send the transaction to the backend
-        const response = await fetch(`${API_BASE_URL}/checkout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                smart_card_id: smartCardId,
-                total_amount: cartTotal,
-                items: activeCart
-            })
-        });
-
-        const data = await response.json();
-
-        // 3. Handle Success vs Insufficient Funds
-        if (response.ok) {
-            alert(`Order Dispatched! Remaining balance: ₹${data.new_balance.toFixed(2)}`);
-
-            // Clear the cart and update UI
-            activeCart = [];
-            cartTotal = 0;
-            document.getElementById("cart-total").innerText = "0.00";
-            document.getElementById("cart-list").innerHTML = "";
-            document.getElementById("grocery-quota").innerText = data.new_balance.toFixed(2);
-        } else {
-            alert(`Transaction Failed: ${data.detail}`);
-        }
-    } catch (error) {
-        console.error("Checkout Error:", error);
-        alert("Network error during checkout.");
-    }
-}
-async function processCheckout() {
+    // 1. Check if cart is empty
     if (activeCart.length === 0) {
         alert("Your cart is empty!");
         return;
     }
 
-    // Change the button text so the user knows it's loading
-    const checkoutBtn = document.getElementById("checkout-btn"); // Update this ID if yours is different!
+    // 2. Get the logged-in user from our secure auth system memory
+    const savedUserString = localStorage.getItem("delurco_user");
+    if (!savedUserString) {
+        alert("Authentication Error: Please login first.");
+        window.location.href = "login.html";
+        return;
+    }
+    const savedUser = JSON.parse(savedUserString);
+
+    // 3. Change button to Processing
+    const checkoutBtn = document.querySelector("#cart-slideout button[onclick='processCheckout()']");
     if (checkoutBtn) checkoutBtn.innerText = "Processing...";
 
+    // 4. Calculate total for the backend
+    let cartTotal = 0;
+    activeCart.forEach(item => cartTotal += (item.price * item.quantity));
+
     try {
+        // 5. Send transaction to the backend
         const response = await fetch(`${API_BASE_URL}/checkout`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: activeCart })
+            body: JSON.stringify({ 
+                smart_card_id: savedUser.smart_card_id, 
+                total_amount: cartTotal, 
+                items: activeCart 
+            })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            alert("✅ " + data.message);
-
-            // Empty the cart and update the UI
+            // Success! Clear memory and UI
             activeCart = [];
+            localStorage.removeItem("delurco_cart");
             renderCart();
-
-            // Optionally, have the AI confirm the order in the chat!
-            const chatHistory = document.getElementById("chat-history");
-            chatHistory.innerHTML += `
-                <div class="mb-4 text-left">
-                    <span class="inline-block bg-emerald-600/20 text-emerald-400 border border-emerald-500/50 px-4 py-2 rounded-lg max-w-[80%] text-sm font-medium">
-                        ✅ Payment successful! Your inventory has been updated.
-                    </span>
-                </div>
-            `;
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+            if (typeof syncProductCards === "function") syncProductCards();
+            
+            // Show success toast and close the cart
+            showToast("Order", "✅ Checkout successful! Sent to kitchen.");
+            if (typeof toggleCart === "function") toggleCart(); 
         } else {
-            alert("❌ Checkout failed: " + data.message);
+            // Backend rejected it (e.g., out of stock!)
+            alert(`delurco.vercel.app says\n❌ ${data.message}`);
         }
     } catch (error) {
-        console.error("Checkout Error:", error);
-        alert("Connection error during checkout.");
+        alert("Connection error. Could not reach server.");
     } finally {
-        // Reset the button text
+        // 6. FIX THE STUCK BUTTON! This always runs, even on errors.
         if (checkoutBtn) checkoutBtn.innerText = "SECURE CHECKOUT";
     }
 }
