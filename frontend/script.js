@@ -204,8 +204,9 @@ function renderCart() {
             container.innerHTML += `
                 <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg">
                     <div>
-                        <h3 class="font-bold text-white">${item.name}</h3>
-                        <p class="text-sm text-gray-400">₹${item.price} x ${item.quantity}</p>
+<button onclick="window.decreaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-red-500 text-white rounded-full font-bold transition-colors">-</button>
+<span class="font-bold text-white w-4 text-center text-sm">${item.quantity}</span>
+<button onclick="window.increaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">+</button>
                     </div>
                     <div class="font-bold text-emerald-400">₹${itemTotal}</div>
                 </div>
@@ -353,9 +354,8 @@ async function processCheckout() {
     const savedUser = JSON.parse(savedUserString);
 
     // 3. Change button to Processing
-    const checkoutBtn = document.querySelector("#cart-slideout button[onclick='processCheckout()']");
+    const checkoutBtn = document.getElementById("checkout-btn");
     if (checkoutBtn) checkoutBtn.innerText = "Processing...";
-
     // 4. Calculate total for the backend
     let cartTotal = 0;
     activeCart.forEach(item => cartTotal += (item.price * item.quantity));
@@ -365,10 +365,10 @@ async function processCheckout() {
         const response = await fetch(`${API_BASE_URL}/checkout`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                smart_card_id: savedUser.smart_card_id, 
-                total_amount: cartTotal, 
-                items: activeCart 
+            body: JSON.stringify({
+                smart_card_id: savedUser.smart_card_id,
+                total_amount: cartTotal,
+                items: activeCart
             })
         });
 
@@ -380,10 +380,10 @@ async function processCheckout() {
             localStorage.removeItem("delurco_cart");
             renderCart();
             if (typeof syncProductCards === "function") syncProductCards();
-            
+
             // Show success toast and close the cart
             showToast("Order", "✅ Checkout successful! Sent to kitchen.");
-            if (typeof toggleCart === "function") toggleCart(); 
+            if (typeof toggleCart === "function") toggleCart();
         } else {
             // Backend rejected it (e.g., out of stock!)
             alert(`delurco.vercel.app says\n❌ ${data.message}`);
@@ -505,7 +505,7 @@ function syncProductCards() {
             container.innerHTML = `
                 <button onclick="manualAddToCart('${itemName}', ${itemPrice}, ${maxStock})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-600/20">Add +</button>
             `;
-        } 
+        }
     });
 }
 // 1. Save the maxStock to the cart array when first added
