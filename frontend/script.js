@@ -539,7 +539,7 @@ function syncProductCards() {
             container.innerHTML = `
                 <button onclick="manualAddToCart('${itemName}', ${itemPrice}, ${maxStock})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-600/20">Add +</button>
             `;
-        }
+        } 
     });
 }
 // 1. Save the maxStock to the cart array when first added
