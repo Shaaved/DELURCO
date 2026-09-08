@@ -529,21 +529,34 @@ function manualAddToCart(itemName, price, maxStock = 10) {
     syncProductCards();
     showToast(itemName);
 }
+// Paste these at the VERY BOTTOM of script.js
 
-// 2. Block the plus button if they hit the ceiling
-window.increaseQuantity = function (itemName) {
+window.decreaseQuantity = function(itemName) {
     const index = activeCart.findIndex(item => item.name === itemName);
-
     if (index > -1) {
-        // Fallback to 10 for items saved in old browser memory
-        const limit = activeCart[index].stockLimit || 10;
+        activeCart[index].quantity -= 1;
+        
+        // If it hits 0, remove it from the array entirely
+        if (activeCart[index].quantity <= 0) {
+            activeCart.splice(index, 1); 
+        }
+        
+        renderCart(); 
+        if (typeof syncProductCards === "function") syncProductCards();
+    }
+};
 
+window.increaseQuantity = function(itemName) {
+    const index = activeCart.findIndex(item => item.name === itemName);
+    if (index > -1) {
+        // Enforce stock limit
+        const limit = activeCart[index].stockLimit || 10; 
+        
         if (activeCart[index].quantity < limit) {
             activeCart[index].quantity += 1;
-            renderCart();
-            syncProductCards();
+            renderCart(); 
+            if (typeof syncProductCards === "function") syncProductCards();
         } else {
-            // They hit the limit! Fire the warning toast.
             showToast(itemName, `⚠️ Only ${limit} ${itemName} left in stock!`);
         }
     }
