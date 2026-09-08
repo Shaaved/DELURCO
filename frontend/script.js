@@ -385,7 +385,7 @@ async function processCheckout() {
             if (typeof syncProductCards === "function") syncProductCards();
 
             // Show success toast and close the cart
-            showToast("Order", "✅ Checkout successful! Sent to kitchen.");
+            showToast("Order", "✅ Checkout successful! move to payments.");
             if (typeof toggleCart === "function") toggleCart();
         } else {
             // Backend rejected it (e.g., out of stock!)
