@@ -188,17 +188,33 @@ function renderCart() {
     const container = document.getElementById("cart-items-container");
     const countSpan = document.getElementById("cart-count");
     const totalSpan = document.getElementById("cart-total");
-
-    container.innerHTML = ""; // Clear current items
+    
     let total = 0;
     let itemCount = 0;
+
+    // 1. Do the math: count total items and total price
+    activeCart.forEach(item => {
+        total += (item.price * item.quantity);
+        itemCount += item.quantity;
+    });
+
+    // 2. Instantly update the Navbar Counter and Checkout Total
+    if (countSpan) countSpan.innerText = itemCount;
+    if (totalSpan) totalSpan.innerText = `₹${total}`;
+
+    // 3. Save current cart to browser memory
+    localStorage.setItem("delurco_cart", JSON.stringify(activeCart));
+
+    // 4. Stop here if the cart HTML panel doesn't exist on this page
+    if (!container) return;
+
+    // 5. Draw the actual Cart UI
+    container.innerHTML = ""; 
 
     if (activeCart.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center mt-10">Your cart is empty.</p>';
     } else {
-        // INSIDE renderCart() - Replace your container.innerHTML block with this:
         activeCart.forEach(item => {
-            const itemTotal = item.price * item.quantity;
             container.innerHTML += `
                 <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg mb-3 shadow-md">
                     <div class="flex-1">
@@ -206,7 +222,6 @@ function renderCart() {
                         <p class="text-sm text-gray-400">₹${item.price} each</p>
                     </div>
                     
-                    <!-- The Plus/Minus Controls with the correct window. tags -->
                     <div class="flex items-center space-x-3 bg-gray-900 rounded-full px-2 py-1 border border-gray-700">
                         <button onclick="window.decreaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-red-500 text-white rounded-full font-bold transition-colors">-</button>
                         <span class="font-bold text-white w-4 text-center text-sm">${item.quantity}</span>
@@ -215,12 +230,7 @@ function renderCart() {
                 </div>
             `;
         });
-        syncProductCards();
     }
-
-    // Update numbers
-    if (countSpan) countSpan.innerText = itemCount;
-    if (totalSpan) totalSpan.innerText = `₹${total}`;
 }
 // --- CHAT LOGIC ---
 // Function to handle sending the chat message
