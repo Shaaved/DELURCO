@@ -349,15 +349,12 @@ async def process_checkout(req: CheckoutRequest):
     try:
         for item in req.items:
             # Check current stock first to prevent negative numbers
-            cursor.execute("SELECT stock FROM inventory WHERE name = ?", (item.name,))
+            cursor.execute("SELECT stock FROM inventory WHERE item_name = ?", (item.name,))
             result = cursor.fetchone()
             
             if result and result[0] >= item.quantity:
                 # Deduct the stock!
-                cursor.execute(
-                    "UPDATE inventory SET stock = stock - ? WHERE name = ?", 
-                    (item.quantity, item.name)
-                )
+               cursor.execute("UPDATE inventory SET stock = stock - ? WHERE item_name = ?", (item.quantity, item.name))
             else:
                 return {"success": False, "message": f"Not enough stock for {item.name}."}
         

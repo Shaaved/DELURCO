@@ -196,19 +196,22 @@ function renderCart() {
     if (activeCart.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center mt-10">Your cart is empty.</p>';
     } else {
-        activeCart.forEach((item, index) => {
+        // INSIDE renderCart() - Replace your container.innerHTML block with this:
+        activeCart.forEach(item => {
             const itemTotal = item.price * item.quantity;
-            total += itemTotal;
-            itemCount += item.quantity;
-
             container.innerHTML += `
-                <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg">
-                    <div>
-<button onclick="window.decreaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-red-500 text-white rounded-full font-bold transition-colors">-</button>
-<span class="font-bold text-white w-4 text-center text-sm">${item.quantity}</span>
-<button onclick="window.increaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">+</button>
+                <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg mb-3 shadow-md">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-white">${item.name}</h3>
+                        <p class="text-sm text-gray-400">₹${item.price} each</p>
                     </div>
-                    <div class="font-bold text-emerald-400">₹${itemTotal}</div>
+                    
+                    <!-- The Plus/Minus Controls with the correct window. tags -->
+                    <div class="flex items-center space-x-3 bg-gray-900 rounded-full px-2 py-1 border border-gray-700">
+                        <button onclick="window.decreaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-red-500 text-white rounded-full font-bold transition-colors">-</button>
+                        <span class="font-bold text-white w-4 text-center text-sm">${item.quantity}</span>
+                        <button onclick="window.increaseQuantity('${item.name}')" class="w-7 h-7 flex items-center justify-center bg-gray-800 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors">+</button>
+                    </div>
                 </div>
             `;
         });
