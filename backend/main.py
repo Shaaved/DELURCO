@@ -438,24 +438,26 @@ async def process_checkout(req: dict):
         smart_card_id = req.get("smart_card_id", "Unknown")
         total_amount = req.get("total_amount", 0)
         
-        # 1. Check stock
+        # 1. Check stock for all items
         for item in items:
             item_name = item.get("name")
             req_qty = item.get("quantity")
+            
             cursor.execute("SELECT stock FROM inventory WHERE item_name = ?", (item_name,))
             row = cursor.fetchone()
+            
             if not row:
                 return {"success": False, "message": f"Item '{item_name}' not found."}
             if row[0] < req_qty:
                 return {"success": False, "message": f"Not enough stock for {item_name}."}
 
-        # 2. Deduct stock
+        # 2. Deduct the stock
         for item in items:
             item_name = item.get("name")
             req_qty = item.get("quantity")
             cursor.execute("UPDATE inventory SET stock = stock - ? WHERE item_name = ?", (req_qty, item_name))
         
-        # 3. NEW: Save the kitchen ticket
+        # 3. SAVE THE TICKET FOR THE ADMIN PANEL (This is what was missing!)
         items_json = json.dumps(items)
         cursor.execute("INSERT INTO orders (smart_card_id, items, total_amount, status) VALUES (?, ?, ?, 'pending')", 
                       (smart_card_id, items_json, total_amount))
