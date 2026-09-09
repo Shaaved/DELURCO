@@ -467,3 +467,40 @@ async def process_checkout(req: dict):
         return {"success": False, "message": str(e)}
     finally:
         conn.close()
+@app.get("/orders")
+async def get_orders():
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    try:
+        # Fetch all orders that are still pending
+        cursor.execute("SELECT id, smart_card_id, items, total_amount FROM orders WHERE status = 'pending'")
+        rows = cursor.fetchall()
+        
+        orders = []
+        for row in rows:
+            orders.append({
+                "id": row[0],
+                "smart_card_id": row[1],
+                "items": json.loads(row[2]), # Turn the JSON string back into a JavaScript array
+                "total_amount": row[3]
+            })
+            
+        return {"success": True, "orders": orders}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()
+    
+@app.post("/complete-order/{order_id}")
+async def complete_order(order_id: int):
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
+    try:
+        # Change the order status so it no longer shows up on the admin panel
+        cursor.execute("UPDATE orders SET status = 'completed' WHERE id = ?", (order_id,))
+        conn.commit()
+        return {"success": True, "message": f"Order {order_id} completed."}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()
