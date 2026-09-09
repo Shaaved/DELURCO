@@ -43,7 +43,8 @@
             const container = document.getElementById("orders-container");
 
             try {
-                const response = await fetch(`${API_BASE_URL}/orders`);
+
+                const response = await fetch(`${API_BASE_URL}/orders`, { cache: 'no-store' });
                 const data = await response.json();
 
                 if (data.success) {
@@ -91,25 +92,25 @@
 
         // Dummy function for now - we will build this backend route next!
         async function markComplete(orderId) {
-    // Optional: Add a quick confirmation so staff don't accidentally click it
-    if (!confirm(`Are you sure you want to clear Order #${orderId}?`)) return;
+            // Optional: Add a quick confirmation so staff don't accidentally click it
+            if (!confirm(`Are you sure you want to clear Order #${orderId}?`)) return;
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/complete-order/${orderId}`, {
-            method: 'POST'
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            // Instantly refresh the orders grid to make the completed ticket disappear!
-            fetchOrders(); 
-        } else {
-            alert(`delurco.vercel.app says\n❌ ${data.message}`);
+            try {
+                const response = await fetch(`${API_BASE_URL}/complete-order/${orderId}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Instantly refresh the orders grid to make the completed ticket disappear!
+                    fetchOrders();
+                } else {
+                    alert(`delurco.vercel.app says\n❌ ${data.message}`);
+                }
+            } catch (error) {
+                alert("Failed to connect to the server.");
+            }
         }
-    } catch (error) {
-        alert("Failed to connect to the server.");
-    }
-}
 
         // Fetch orders immediately when the page loads
         document.addEventListener("DOMContentLoaded", fetchOrders);
