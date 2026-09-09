@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSD Dispatch | DELURCO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-950 text-white min-h-screen font-sans p-8">
+
+    <!-- Admin Header -->
+    <header class="flex justify-between items-center mb-10 border-b border-gray-800 pb-6">
+        <div>
+            <h1 class="text-3xl font-bold tracking-wider text-emerald-400">DELURCO <span class="text-white">CSD
+                    DISPATCH</span></h1>
+            <p class="text-gray-400 mt-1">Live Order Fulfillment Dashboard</p>
+        </div>
+        <div class="flex space-x-4">
+            <button onclick="fetchOrders()"
+                class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-700">
+                🔄 Refresh Orders
+            </button>
+            <a href="index.html"
+                class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-700">
+                Back to Store
+            </a>
+        </div>
+    </header>
+
+    <!-- Orders Grid -->
+    <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Orders will be injected here by JavaScript -->
+        <p class="text-gray-500 col-span-full text-center mt-10">Loading active orders...</p>
+    </div>
+
+    <script>
+        // Use your live Render URL here!
+        const API_BASE_URL = "https://YOUR-RENDER-URL.onrender.com";
+
+        async function fetchOrders() {
+            const container = document.getElementById("orders-container");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/orders`);
+                const data = await response.json();
+
+                if (data.success) {
+                    container.innerHTML = ""; // Clear loading text
+
+                    if (data.orders.length === 0) {
+                        container.innerHTML = '<p class="text-gray-500 col-span-full text-center mt-10">No pending orders. Good job!</p>';
+                        return;
+                    }
+
+                    // Draw each order ticket
+                    data.orders.forEach(order => {
+                        let itemsHTML = "";
+                        order.items.forEach(item => {
+                            itemsHTML += `<li class="flex justify-between text-sm mb-1"><span class="text-gray-300">${item.quantity}x ${item.name}</span> <span class="text-gray-500">₹${item.price * item.quantity}</span></li>`;
+                        });
+
+                        container.innerHTML += `
+                            <div class="bg-gray-900 border border-gray-700 rounded-xl p-5 shadow-lg flex flex-col">
+                                <div class="flex justify-between items-start mb-4 border-b border-gray-800 pb-3">
+                                    <div>
+                                        <span class="bg-emerald-900/50 text-emerald-400 text-xs font-bold px-2 py-1 rounded">ORDER #${order.id}</span>
+                                        <h3 class="text-lg font-bold mt-2">ID: ${order.smart_card_id}</h3>
+                                    </div>
+                                    <span class="text-xl font-bold text-emerald-400">₹${order.total_amount}</span>
+                                </div>
+                                
+                                <ul class="flex-1 mb-6">
+                                    ${itemsHTML}
+                                </ul>
+                                
+                                <button onclick="markComplete(${order.id})" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg transition-colors">
+                                    Mark as Dispatched
+                                </button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `<p class="text-red-500 col-span-full text-center mt-10">Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p class="text-red-500 col-span-full text-center mt-10">Failed to connect to the server.</p>`;
+            }
+        }
+
+        // Dummy function for now - we will build this backend route next!
+        async function markComplete(orderId) {
+    // Optional: Add a quick confirmation so staff don't accidentally click it
+    if (!confirm(`Are you sure you want to clear Order #${orderId}?`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/complete-order/${orderId}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            // Instantly refresh the orders grid to make the completed ticket disappear!
+            fetchOrders(); 
+        } else {
+            alert(`delurco.vercel.app says\n❌ ${data.message}`);
+        }
+    } catch (error) {
+        alert("Failed to connect to the server.");
+    }
+}
+
+        // Fetch orders immediately when the page loads
+        document.addEventListener("DOMContentLoaded", fetchOrders);
+    </script>
+</body>
+
+</html>
