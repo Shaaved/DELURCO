@@ -9,6 +9,7 @@ from google import genai
 import asyncio
 import sqlite3
 import os
+import json
 client = genai.Client(api_key="AQ.Ab8RN6LEi7o4nKUjqWn_pJADWSHRXcK9QAwTI5uLKfT3PefX3A")
 
 # 1. Initialize a Mock CSD SQL Database
@@ -30,7 +31,16 @@ def setup_mock_database():
         balance REAL
     )
 ''')
-    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        smart_card_id TEXT,
+        items TEXT,
+        total_amount REAL,
+        status TEXT DEFAULT 'pending'
+    )
+''')
+    conn.commit()
     # Check if table is empty, if so, insert mock data
     cursor.execute("SELECT COUNT(*) FROM inventory")
     if cursor.fetchone()[0] == 0:
@@ -419,48 +429,41 @@ class CheckoutRequest(BaseModel):
 from fastapi import HTTPException, Depends
 
 @app.post("/checkout")
-def process_checkout(
-    request: CheckoutRequest, 
-    mock_db: Session = Depends(get_mock_db),          # Needed for the financial balance
-    delivery_db: Session = Depends(get_delivery_db)   # Needed for the rider's order
-):
-    # 1. Find the User in your app database
-    app_user = delivery_db.query(User).filter(User.smart_card_id == request.smart_card_id).first()
-    if not app_user:
-        raise HTTPException(status_code=404, detail="User not registered on app.")
-
-    # 2. Find their actual financial record in the CSD database
-    csd_record = mock_db.query(MockCSDRecord).filter(MockCSDRecord.smart_card_id == request.smart_card_id).first()
-    if not csd_record:
-        raise HTTPException(status_code=404, detail="Smart Card not found in CSD database.")
-
-    # 3. Check for Insufficient Funds
-    if csd_record.monthly_grocery_limit < request.total_amount:
-        raise HTTPException(status_code=400, detail="Insufficient CSD Quota for this transaction.")
-
-    # 4. Deduct the Money!
-    csd_record.monthly_grocery_limit -= request.total_amount
-    mock_db.commit()
-# 5. Create the Order for the Rider
-    new_order = Order(
-        user_id=app_user.id,
-        total_amount=request.total_amount,
-        status="PENDING"  # <-- CHANGED TO ALL CAPS!
-    )
-    delivery_db.add(new_order)
-    delivery_db.commit()
-    delivery_db.refresh(new_order) # <-- NEW: This grabs the ID of the newly created order!
-
-    # 6. Loop through the cart and save each item to the OrderItem table
-    for cart_item in request.items:
-        db_item = OrderItem(
-            order_id=new_order.id,
-            item_name=cart_item.name,    # NOTE: Ensure 'item_name', 'quantity', and 'price' match your OrderItem columns!
-            quantity=cart_item.quantity,
-            price=cart_item.price
-        )
-        delivery_db.add(db_item)
+async def process_checkout(req: dict):
+    conn = sqlite3.connect("canteen.db")
+    cursor = conn.cursor()
     
-    delivery_db.commit()
+    try:
+        items = req.get("items", [])
+        smart_card_id = req.get("smart_card_id", "Unknown")
+        total_amount = req.get("total_amount", 0)
+        
+        # 1. Check stock
+        for item in items:
+            item_name = item.get("name")
+            req_qty = item.get("quantity")
+            cursor.execute("SELECT stock FROM inventory WHERE item_name = ?", (item_name,))
+            row = cursor.fetchone()
+            if not row:
+                return {"success": False, "message": f"Item '{item_name}' not found."}
+            if row[0] < req_qty:
+                return {"success": False, "message": f"Not enough stock for {item_name}."}
 
-    return {"status": "success", "new_balance": csd_record.monthly_grocery_limit}
+        # 2. Deduct stock
+        for item in items:
+            item_name = item.get("name")
+            req_qty = item.get("quantity")
+            cursor.execute("UPDATE inventory SET stock = stock - ? WHERE item_name = ?", (req_qty, item_name))
+        
+        # 3. NEW: Save the kitchen ticket
+        items_json = json.dumps(items)
+        cursor.execute("INSERT INTO orders (smart_card_id, items, total_amount, status) VALUES (?, ?, ?, 'pending')", 
+                      (smart_card_id, items_json, total_amount))
+            
+        conn.commit()
+        return {"success": True, "message": "Checkout successful!"}
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+    finally:
+        conn.close()
