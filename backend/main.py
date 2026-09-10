@@ -342,39 +342,6 @@ async def chat_endpoint(req: ChatRequest):
             "Connection": "keep-alive"
         }
     )
-class CartItem(BaseModel):
-    name: str
-    price: float
-    quantity: int
-
-class CheckoutRequest(BaseModel):
-    items: List[CartItem]
-
-# 2. Create the Checkout Endpoint
-@app.post("/checkout")
-async def process_checkout(req: CheckoutRequest):
-    conn = sqlite3.connect("canteen.db")
-    cursor = conn.cursor()
-    
-    try:
-        for item in req.items:
-            # Check current stock first to prevent negative numbers
-            cursor.execute("SELECT stock FROM inventory WHERE item_name = ?", (item.name,))
-            result = cursor.fetchone()
-            
-            if result and result[0] >= item.quantity:
-                # Deduct the stock!
-               cursor.execute("UPDATE inventory SET stock = stock - ? WHERE item_name = ?", (item.quantity, item.name))
-            else:
-                return {"success": False, "message": f"Not enough stock for {item.name}."}
-        
-        conn.commit()
-        return {"success": True, "message": "Order placed successfully!"}
-        
-    except Exception as e:
-        return {"success": False, "message": str(e)}
-    finally:
-        conn.close()
 @app.get("/agent/deliveries")
 def get_active_deliveries(delivery_db: Session = Depends(get_delivery_db)):
     """Fetches all orders currently out for delivery."""
