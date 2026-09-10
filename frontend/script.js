@@ -3,7 +3,7 @@ let currentSmartCardId = "";
 // Run this immediately when any page loads
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Check if the current URL contains "login.html"
-    const isLoginPage = window.location.pathname.includes("login.html");
+    const isLoginPage = window.location.pathname.includes("index.html");
 
     // 2. Look for the saved user in the browser
     const savedUser = localStorage.getItem("delurco_user");
@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // BOUNCER LOGIC:
     if (!savedUser && !isLoginPage) {
         // Condition A: Not logged in, and trying to view the store -> Kick to login
-        window.location.href = "login.html";
+        window.location.href = "index.html";
         return; // Stop running any more code
     } else if (savedUser && isLoginPage) {
         // Condition B: Already logged in, but looking at the login screen -> Send to store
@@ -361,7 +361,7 @@ async function processCheckout() {
     const savedUserString = localStorage.getItem("delurco_user");
     if (!savedUserString) {
         alert("Authentication Error: Please login first.");
-        window.location.href = "login.html";
+        window.location.href = "index.html";
         return;
     }
     const savedUser = JSON.parse(savedUserString);
@@ -491,7 +491,7 @@ async function attemptLogin() {
 // Function to automatically log out
 function logoutUser() {
     localStorage.removeItem("delurco_user");
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 }
 function syncProductCards() {
     const actionContainers = document.querySelectorAll('.item-action-container');
